@@ -55,7 +55,7 @@ func (session *Session) start() {
 
 func (session *Session) readRoutine() {
 	for !session.close {
-		data, err := session.readPacket()
+		data, err := session.pktProcessor.UnPack(session)
 		if err != nil {
 			//TODO
 			return
@@ -71,13 +71,12 @@ func (session *Session) writeRoutine() {
 			break
 		}
 
-		_, err := session.conn.Write(data)
+		pktData := session.pktProcessor.Pack(data)
+		_, err := session.conn.Write(pktData)
 		if err != nil {
+			//TODO
 			break
 		}
 	}
-}
-
-func (session *Session) readPacket() ([]byte, error) {
-	return session.pktProcessor.Read(session)
+	//TODO
 }

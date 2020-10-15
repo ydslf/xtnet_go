@@ -7,8 +7,8 @@ import (
 )
 
 type PktProcessor interface {
-	Read(session *Session) (data []byte, err error)
-	Write(session *Session, data []byte) error
+	UnPack(session *Session) ([]byte, error)
+	Pack(data []byte) []byte
 }
 
 var (
@@ -17,10 +17,12 @@ var (
 )
 
 type PktProcessorDefault struct {
-	maxPkgSize uint32
-	byteOrder  binary.ByteOrder
+	pktHeadSize uint32
+	maxPkgSize  uint32
+	byteOrder   binary.ByteOrder
 }
 
+//PktProcessorDefault
 /*
 	| pkgHead | 	pkgBody 	|
 	| pkgLen  | msgID |	msgBody |
@@ -28,18 +30,19 @@ type PktProcessorDefault struct {
 
 func NewPktProcessorDefault(maxPkgSize uint32, order binary.ByteOrder) PktProcessor {
 	return &PktProcessorDefault{
-		maxPkgSize: maxPkgSize,
-		byteOrder:  order,
+		pktHeadSize: 4,
+		maxPkgSize:  maxPkgSize,
+		byteOrder:   order,
 	}
 }
 
-func (process *PktProcessorDefault) Read(session *Session) ([]byte, error) {
-	bufPktLen := make([]byte, 4)
-	if _, err := io.ReadFull(session.conn, bufPktLen); err != nil {
+func (process *PktProcessorDefault) UnPack(session *Session) ([]byte, error) {
+	pktLenBuff := make([]byte, process.pktHeadSize)
+	if _, err := io.ReadFull(session.conn, pktLenBuff); err != nil {
 		return nil, err
 	}
 
-	pktLen := process.byteOrder.Uint32(bufPktLen)
+	pktLen := process.byteOrder.Uint32(pktLenBuff)
 	if pktLen > process.maxPkgSize {
 		//TODO
 		return nil, NTErrPktTooLong
@@ -57,6 +60,10 @@ func (process *PktProcessorDefault) Read(session *Session) ([]byte, error) {
 	return pktData, nil
 }
 
-func (process *PktProcessorDefault) Write(session *Session, data []byte) error {
-	return nil
+func (process *PktProcessorDefault) Pack(data []byte) []byte {
+	pktLen := uint32(len(data))
+	pktData := make([]byte, process.pktHeadSize+pktLen)
+	process.byteOrder.PutUint32(pktData, pktLen)
+	copy(pktData[process.pktHeadSize:], data)
+	return pktData
 }
