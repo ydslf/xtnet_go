@@ -1,40 +1,83 @@
 package tcp
 
 import (
+	"fmt"
 	"net"
 	"sync"
 )
 
 type Session struct {
-	conn			net.Conn
-	onSessionData	OnSessionData
-	onSessionClose	OnSessionClose
-	close			bool
-	wgClose			sync.WaitGroup
+	conn         net.Conn
+	pktProcessor PktProcessor
+	close        bool
+	wgClose      sync.WaitGroup
+	sendChan     chan []byte
+
+	onSessionData  OnSessionData
+	onSessionClose OnSessionClose
 }
 
-func newSession(conn net.Conn, onSessionData OnSessionData, onSessionClose OnSessionClose) *Session{
+func newSession(conn net.Conn, pktProcessor PktProcessor, sendBuffSize uint32) *Session {
 	return &Session{
-		conn: conn,
-		onSessionData: onSessionData,
-		onSessionClose: onSessionClose,
-		close: false,
+		conn:         conn,
+		pktProcessor: pktProcessor,
+		close:        false,
+		sendChan:     make(chan []byte, sendBuffSize),
 	}
 }
 
-func (session *Session) Start(){
-	go session.read()
-	go session.write()
+func (session *Session) setCallback(onSessionData OnSessionData, onSessionClose OnSessionClose) {
+	session.onSessionData = onSessionData
+	session.onSessionClose = onSessionClose
 }
 
-func (session *Session) Close(){
+func (session *Session) Send(data []byte) {
+	if session.close {
+		//TODO
+		return
+	}
+
+	if len(session.sendChan) == cap(session.sendChan) {
+		//TODO
+		fmt.Printf("Session.sendChan is full")
+	}
+	session.sendChan <- data
+}
+
+func (session *Session) Close() {
 
 }
 
-func (session *Session) read(){
-
+func (session *Session) start() {
+	go session.readRoutine()
+	go session.writeRoutine()
 }
 
-func (session *Session) write(){
+func (session *Session) readRoutine() {
+	for !session.close {
+		data, err := session.readPacket()
+		if err != nil {
+			//TODO
+			return
+		}
 
+		session.onSessionData(session, data)
+	}
+}
+
+func (session *Session) writeRoutine() {
+	for data := range session.sendChan {
+		if data == nil {
+			break
+		}
+
+		_, err := session.conn.Write(data)
+		if err != nil {
+			break
+		}
+	}
+}
+
+func (session *Session) readPacket() ([]byte, error) {
+	return session.pktProcessor.Read(session)
 }

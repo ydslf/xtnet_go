@@ -1,38 +1,49 @@
 package tcp
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 	"sync"
 )
 
 type OnAccept func(*Session)
-type OnSessionData func(*Session)
-type OnSessionClose	func(*Session)
+type OnSessionData func(*Session, []byte)
+type OnSessionClose func(*Session)
 
 type Server struct {
-	addr 			string
-	onAccept		OnAccept
-	onSessionData	OnSessionData
-	onSessionClose	OnSessionClose
-	close			bool
-	listener   		net.Listener
-	wgClose			sync.WaitGroup
+	addr         string
+	maxPkgSize   uint32
+	order        binary.ByteOrder
+	sendBuffSize uint32
+	close        bool
+	listener     net.Listener
+	wgClose      sync.WaitGroup
+
+	onAccept       OnAccept
+	onSessionData  OnSessionData
+	onSessionClose OnSessionClose
 }
 
-func NewServer(addr string, onAccept OnAccept, onSessionData OnSessionData, onSessionClose OnSessionClose) *Server {
+func NewServer(addr string, maxPkgSize uint32, order binary.ByteOrder, sendBuffSize uint32) *Server {
 	return &Server{
-		addr: addr,
-		onAccept: onAccept,
-		onSessionData: onSessionData,
-		onSessionClose: onSessionClose,
-		close: false,
+		addr:         addr,
+		maxPkgSize:   maxPkgSize,
+		order:        order,
+		sendBuffSize: sendBuffSize,
+		close:        false,
 	}
+}
+
+func (server *Server) SetCallback(onAccept OnAccept, onSessionData OnSessionData, onSessionClose OnSessionClose) {
+	server.onAccept = onAccept
+	server.onSessionData = onSessionData
+	server.onSessionClose = onSessionClose
 }
 
 func (server *Server) Start() bool {
 	listener, err := net.Listen("tcp", server.addr)
-	if err != nil{
+	if err != nil {
 		//TODO
 		fmt.Printf("tcp.Server.Start: %v", err)
 		return false
@@ -43,13 +54,13 @@ func (server *Server) Start() bool {
 	return true
 }
 
-func (server *Server) Close(){
+func (server *Server) Close() {
 	server.listener.Close()
 	server.close = true
 	server.wgClose.Wait()
 }
 
-func (server *Server) listen(){
+func (server *Server) listen() {
 	server.wgClose.Add(1)
 	defer server.wgClose.Done()
 
@@ -59,8 +70,10 @@ func (server *Server) listen(){
 			//TODO
 			continue
 		}
-		session := newSession(conn, server.onSessionData, server.onSessionClose)
-		session.Start()
+		pkgProcessor := NewPktProcessorDefault(server.maxPkgSize, server.order)
+		session := newSession(conn, pkgProcessor, server.sendBuffSize)
+		session.setCallback(server.onSessionData, server.onSessionClose)
+		session.start()
 		server.onAccept(session)
 	}
 }
