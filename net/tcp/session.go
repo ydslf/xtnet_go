@@ -58,6 +58,8 @@ func (session *Session) readRoutine() {
 		data, err := session.pktProcessor.UnPack(session)
 		if err != nil {
 			//TODO
+			//LOG
+			//CLOSE
 			return
 		}
 
@@ -67,14 +69,12 @@ func (session *Session) readRoutine() {
 
 func (session *Session) writeRoutine() {
 	for data := range session.sendChan {
-		if data == nil {
-			break
-		}
-
 		pktData := session.pktProcessor.Pack(data)
 		_, err := session.conn.Write(pktData)
 		if err != nil {
 			//TODO
+			//LOG
+			//CLOSE
 			break
 		}
 	}

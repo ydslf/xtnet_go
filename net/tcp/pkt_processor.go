@@ -45,10 +45,12 @@ func (process *PktProcessorDefault) UnPack(session *Session) ([]byte, error) {
 	pktLen := process.byteOrder.Uint32(pktLenBuff)
 	if pktLen > process.maxPkgSize {
 		//TODO
+		//LOG
 		return nil, NTErrPktTooLong
 	}
 	if pktLen == 0 {
 		//TODO
+		//LOG
 		return nil, NTErrPktZero
 	}
 
