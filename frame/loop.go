@@ -6,11 +6,15 @@ type Loop struct {
 	loopFuns chan LoopFun
 }
 
-func (loop*Loop)Post(f LoopFun){
+func NewLoop() *Loop {
+	return &Loop{}
+}
+
+func (loop *Loop) Post(f LoopFun) {
 	loop.loopFuns <- f
 }
 
-func (loop*Loop)Start(){
+func (loop *Loop) Start() {
 	for f := range loop.loopFuns {
 		f()
 	}
