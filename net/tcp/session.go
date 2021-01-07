@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	mynet "xtnet/net"
 )
 
 type Session struct {
@@ -13,8 +14,8 @@ type Session struct {
 	wgClose      sync.WaitGroup
 	sendChan     chan []byte
 
-	onSessionData  OnSessionData
-	onSessionClose OnSessionClose
+	onSessionData  mynet.OnSessionData
+	onSessionClose mynet.OnSessionClose
 }
 
 func newSession(conn net.Conn, pktProcessor PktProcessor, sendBuffSize uint32) *Session {
@@ -26,7 +27,7 @@ func newSession(conn net.Conn, pktProcessor PktProcessor, sendBuffSize uint32) *
 	}
 }
 
-func (session *Session) setCallback(onSessionData OnSessionData, onSessionClose OnSessionClose) {
+func (session *Session) setCallback(onSessionData mynet.OnSessionData, onSessionClose mynet.OnSessionClose) {
 	session.onSessionData = onSessionData
 	session.onSessionClose = onSessionClose
 }

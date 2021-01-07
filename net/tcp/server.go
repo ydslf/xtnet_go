@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	mynet "xtnet/net"
 )
-
-type OnAccept func(*Session)
-type OnSessionData func(*Session, []byte)
-type OnSessionClose func(*Session)
 
 type Server struct {
 	addr         string
@@ -20,9 +17,9 @@ type Server struct {
 	listener     net.Listener
 	wgClose      sync.WaitGroup
 
-	onAccept       OnAccept
-	onSessionData  OnSessionData
-	onSessionClose OnSessionClose
+	onAccept       mynet.OnAccept
+	onSessionData  mynet.OnSessionData
+	onSessionClose mynet.OnSessionClose
 }
 
 func NewServer(addr string, maxPkgSize uint32, order binary.ByteOrder, sendBuffSize uint32) *Server {
@@ -35,7 +32,7 @@ func NewServer(addr string, maxPkgSize uint32, order binary.ByteOrder, sendBuffS
 	}
 }
 
-func (server *Server) SetCallback(onAccept OnAccept, onSessionData OnSessionData, onSessionClose OnSessionClose) {
+func (server *Server) SetCallback(onAccept mynet.OnAccept, onSessionData mynet.OnSessionData, onSessionClose mynet.OnSessionClose) {
 	server.onAccept = onAccept
 	server.onSessionData = onSessionData
 	server.onSessionClose = onSessionClose
@@ -70,6 +67,8 @@ func (server *Server) listen() {
 			//TODO
 			continue
 		}
+		//TODO
+		//不在这创建pkgProcessor，应该由上层创建
 		pkgProcessor := NewPktProcessorDefault(server.maxPkgSize, server.order)
 		session := newSession(conn, pkgProcessor, server.sendBuffSize)
 		session.setCallback(server.onSessionData, server.onSessionClose)
