@@ -7,14 +7,16 @@ type Loop struct {
 }
 
 func NewLoop() *Loop {
-	return &Loop{}
+	return &Loop{
+		loopFuns: make(chan LoopFun),
+	}
 }
 
 func (loop *Loop) Post(f LoopFun) {
 	loop.loopFuns <- f
 }
 
-func (loop *Loop) Start() {
+func (loop *Loop) Run() {
 	for f := range loop.loopFuns {
 		f()
 	}
