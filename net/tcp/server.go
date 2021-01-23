@@ -20,6 +20,7 @@ type Server struct {
 	onAccept       mynet.OnAccept
 	onSessionData  mynet.OnSessionData
 	onSessionClose mynet.OnSessionClose
+	agent          mynet.IAgent
 }
 
 func NewServer(addr string, maxPkgSize uint32, order binary.ByteOrder, sendBuffSize uint32) *Server {
@@ -36,6 +37,10 @@ func (server *Server) SetCallback(onAccept mynet.OnAccept, onSessionData mynet.O
 	server.onAccept = onAccept
 	server.onSessionData = onSessionData
 	server.onSessionClose = onSessionClose
+}
+
+func (server *Server) SetAgent(agent mynet.IAgent) {
+	server.agent = agent
 }
 
 func (server *Server) Start() bool {
@@ -72,7 +77,12 @@ func (server *Server) listen() {
 		pkgProcessor := NewPktProcessorDefault(server.maxPkgSize, server.order)
 		session := newSession(conn, pkgProcessor, server.sendBuffSize)
 		session.setCallback(server.onSessionData, server.onSessionClose)
+		session.setAgent(server.agent)
 		session.start()
-		server.onAccept(session)
+		if server.agent != nil {
+			server.agent.HandlerAccept(session)
+		} else {
+			server.onAccept(session)
+		}
 	}
 }

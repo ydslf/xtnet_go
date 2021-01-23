@@ -16,6 +16,9 @@ type Session struct {
 
 	onSessionData  mynet.OnSessionData
 	onSessionClose mynet.OnSessionClose
+	agent          mynet.IAgent
+
+	userData interface{}
 }
 
 func newSession(conn net.Conn, pktProcessor PktProcessor, sendBuffSize uint32) *Session {
@@ -30,6 +33,10 @@ func newSession(conn net.Conn, pktProcessor PktProcessor, sendBuffSize uint32) *
 func (session *Session) setCallback(onSessionData mynet.OnSessionData, onSessionClose mynet.OnSessionClose) {
 	session.onSessionData = onSessionData
 	session.onSessionClose = onSessionClose
+}
+
+func (session *Session) setAgent(agent mynet.IAgent) {
+	session.agent = agent
 }
 
 func (session *Session) Send(data []byte) {
@@ -64,7 +71,12 @@ func (session *Session) readRoutine() {
 			return
 		}
 
-		session.onSessionData(session, data)
+		if session.agent != nil {
+			session.agent.HandlerSessionData(session, data)
+		} else {
+			session.onSessionData(session, data)
+		}
+
 	}
 }
 

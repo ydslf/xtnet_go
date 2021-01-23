@@ -6,6 +6,7 @@ import (
 	"time"
 	"xtnet/frame"
 	xtnet "xtnet/net"
+	"xtnet/net/packet"
 	"xtnet/net/tcp"
 )
 
@@ -29,22 +30,21 @@ import (
 
 func main() {
 	loop := frame.NewLoop()
-	netRpc := xtnet.NewNetRpc(loop)
-	netAgent := xtnet.NewNetAgent(loop)
+	netRpc := xtnet.NewRpc(loop)
+	netAgent := xtnet.NewAgent(loop)
 	testServer := tcp.NewServer("127.0.0.1:7001", 1024, binary.BigEndian, 1024)
 
 	netAgent.SetNetRpc(netRpc)
-	netAgent.SetCbOnAccept(func(session xtnet.Session) {
+	netAgent.SetOnAccept(func(session xtnet.Session) {
 		fmt.Println("OnAccept")
 	})
-	netAgent.SetCbOnSessionData(func(session xtnet.Session, data []byte) {
-		msgID := data[0:4]
-		fmt.Println("OnSessionData: ", msgID, data[4])
+	netAgent.SetOnSessionPacket(func(session xtnet.Session, rpk *packet.ReadPacket) {
+		fmt.Println("OnSessionData: ", rpk)
 	})
-	netAgent.SetCbOnSessionClose(func(session xtnet.Session) {
+	netAgent.SetOnSessionClose(func(session xtnet.Session) {
 		fmt.Println("OnSessionClose")
 	})
-	testServer.SetCallback(netAgent.OnAccept, netAgent.OnSessionData, netAgent.OnSessionClose)
+	testServer.SetAgent(netAgent)
 
 	/*
 		testServer.SetCallback(func(session mynet.Session) {
