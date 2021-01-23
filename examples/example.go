@@ -35,13 +35,13 @@ func main() {
 	testServer := tcp.NewServer("127.0.0.1:7001", 1024, binary.BigEndian, 1024)
 
 	netAgent.SetNetRpc(netRpc)
-	netAgent.SetOnAccept(func(session xtnet.Session) {
+	netAgent.SetOnAccept(func(session xtnet.ISession) {
 		fmt.Println("OnAccept")
 	})
-	netAgent.SetOnSessionPacket(func(session xtnet.Session, rpk *packet.ReadPacket) {
+	netAgent.SetOnSessionPacket(func(session xtnet.ISession, rpk *packet.ReadPacket) {
 		fmt.Println("OnSessionData: ", rpk)
 	})
-	netAgent.SetOnSessionClose(func(session xtnet.Session) {
+	netAgent.SetOnSessionClose(func(session xtnet.ISession) {
 		fmt.Println("OnSessionClose")
 	})
 	testServer.SetAgent(netAgent)

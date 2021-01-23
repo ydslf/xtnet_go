@@ -38,7 +38,7 @@ func (rpc *Rpc) SetOnRpcRequestSync(onRpcRequestSync OnRpcRequestSync) {
 	rpc.onRpcRequestSync = onRpcRequestSync
 }
 
-func (rpc *Rpc) HandleSessionPacket(session Session, rpk *packet.ReadPacket) {
+func (rpc *Rpc) HandleSessionPacket(session ISession, rpk *packet.ReadPacket) {
 	rpcType := rpk.ReadInt8()
 	contextID := rpk.ReadInt32()
 
@@ -61,15 +61,15 @@ func (rpc *Rpc) HandleSessionPacket(session Session, rpk *packet.ReadPacket) {
 	}
 }
 
-func (rpc *Rpc) handleRpcDirect(session Session, rpk *packet.ReadPacket) {
+func (rpc *Rpc) handleRpcDirect(session ISession, rpk *packet.ReadPacket) {
 	rpc.onRpcDirect(session, rpk)
 }
 
-func (rpc *Rpc) handleRpcRequestAsyn(session Session, contextID int32, rpk *packet.ReadPacket) {
+func (rpc *Rpc) handleRpcRequestAsyn(session ISession, contextID int32, rpk *packet.ReadPacket) {
 	rpc.onRpcRequestAsyn(session, contextID, rpk)
 }
 
-func (rpc *Rpc) handleRpcRequestSync(session Session, contextID int32, rpk *packet.ReadPacket) {
+func (rpc *Rpc) handleRpcRequestSync(session ISession, contextID int32, rpk *packet.ReadPacket) {
 	rpc.onRpcRequestSync(session, contextID, rpk)
 }
 

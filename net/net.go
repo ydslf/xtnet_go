@@ -2,21 +2,21 @@ package net
 
 import "xtnet/net/packet"
 
-type OnAccept func(Session)
-type OnSessionData func(Session, []byte)
-type OnSessionPacket func(Session, *packet.ReadPacket)
-type OnSessionClose func(Session)
+type OnAccept func(ISession)
+type OnSessionData func(ISession, []byte)
+type OnSessionPacket func(ISession, *packet.ReadPacket)
+type OnSessionClose func(ISession)
 
-type OnRpcDirect func(Session, *packet.ReadPacket)
-type OnRpcRequestAsyn func(Session, int32, *packet.ReadPacket)
-type OnRpcRequestSync func(Session, int32, *packet.ReadPacket)
+type OnRpcDirect func(ISession, *packet.ReadPacket)
+type OnRpcRequestAsyn func(ISession, int32, *packet.ReadPacket)
+type OnRpcRequestSync func(ISession, int32, *packet.ReadPacket)
 
-type Session interface {
+type ISession interface {
 	Send([]byte)
 }
 
 type IAgent interface {
-	HandlerAccept(Session)
-	HandlerSessionClose(Session)
-	HandlerSessionData(Session, []byte)
+	HandlerAccept(ISession)
+	HandlerSessionClose(ISession)
+	HandlerSessionData(ISession, []byte)
 }

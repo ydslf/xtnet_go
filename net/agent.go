@@ -36,19 +36,19 @@ func (agent *Agent) SetOnSessionClose(onSessionClose OnSessionClose) {
 	agent.onSessionClose = onSessionClose
 }
 
-func (agent *Agent) HandlerAccept(session Session) {
+func (agent *Agent) HandlerAccept(session ISession) {
 	agent.loop.Post(func() {
 		agent.onAccept(session)
 	})
 }
 
-func (agent *Agent) HandlerSessionClose(session Session) {
+func (agent *Agent) HandlerSessionClose(session ISession) {
 	agent.loop.Post(func() {
 		agent.onSessionClose(session)
 	})
 }
 
-func (agent *Agent) HandlerSessionData(session Session, data []byte) {
+func (agent *Agent) HandlerSessionData(session ISession, data []byte) {
 	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, uint(len(data)))
 	if agent.netRpc != nil {
 		agent.netRpc.HandleSessionPacket(session, rpk)
