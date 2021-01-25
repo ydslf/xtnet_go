@@ -13,11 +13,16 @@ const (
 	RPCTYPE_RESPONSE_SYNC int8 = 4 //同步RPC回应
 )
 
+type RpcRequest struct {
+	Session   ISession
+	rpcType   int8
+	contextID int32
+}
+
 type Rpc struct {
-	loop             *frame.Loop
-	onRpcDirect      OnRpcDirect
-	onRpcRequestAsyn OnRpcRequestAsyn
-	onRpcRequestSync OnRpcRequestSync
+	loop         *frame.Loop
+	onRpcDirect  OnRpcDirect
+	onRpcRequest OnRpcRequest
 }
 
 func NewRpc(loop *frame.Loop) *Rpc {
@@ -30,12 +35,8 @@ func (rpc *Rpc) SetOnRpcDirect(onRpcDirect OnRpcDirect) {
 	rpc.onRpcDirect = onRpcDirect
 }
 
-func (rpc *Rpc) SetOnRpcRequestAsyn(onRpcRequestAsyn OnRpcRequestAsyn) {
-	rpc.onRpcRequestAsyn = onRpcRequestAsyn
-}
-
-func (rpc *Rpc) SetOnRpcRequestSync(onRpcRequestSync OnRpcRequestSync) {
-	rpc.onRpcRequestSync = onRpcRequestSync
+func (rpc *Rpc) SetOnRpcRequest(nRpcRequest OnRpcRequest) {
+	rpc.onRpcRequest = nRpcRequest
 }
 
 func (rpc *Rpc) HandleSessionPacket(session ISession, rpk *packet.ReadPacket) {
@@ -49,11 +50,11 @@ func (rpc *Rpc) HandleSessionPacket(session ISession, rpk *packet.ReadPacket) {
 		})
 	case RPCTYPE_REQUEST_ASYN:
 		rpc.loop.Post(func() {
-			rpc.handleRpcRequestAsyn(session, contextID, rpk)
+			rpc.handleRpcRequest(session, rpcType, contextID, rpk)
 		})
 	case PRCTYPE_REQUEST_SYNC:
 		rpc.loop.Post(func() {
-			rpc.handleRpcRequestSync(session, contextID, rpk)
+			rpc.handleRpcRequest(session, rpcType, contextID, rpk)
 		})
 	case RPCTYPE_RESPONSE_ASYN:
 	case RPCTYPE_RESPONSE_SYNC:
@@ -65,30 +66,27 @@ func (rpc *Rpc) handleRpcDirect(session ISession, rpk *packet.ReadPacket) {
 	rpc.onRpcDirect(session, rpk)
 }
 
-func (rpc *Rpc) handleRpcRequestAsyn(session ISession, contextID int32, rpk *packet.ReadPacket) {
-	rpc.onRpcRequestAsyn(session, contextID, rpk)
+func (rpc *Rpc) handleRpcRequest(session ISession, rpcType int8, contextID int32, rpk *packet.ReadPacket) {
+	rpcRequest := &RpcRequest{
+		Session:   session,
+		rpcType:   rpcType,
+		contextID: contextID,
+	}
+	rpc.onRpcRequest(rpcRequest, rpk)
 }
 
-func (rpc *Rpc) handleRpcRequestSync(session ISession, contextID int32, rpk *packet.ReadPacket) {
-	rpc.onRpcRequestSync(session, contextID, rpk)
-}
-
-func (rpc *Rpc) SendDirect() {
-
-}
-
-func (rpc *Rpc) RequestAsyn() {
+func (rpc *Rpc) SendDirect(session ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) RequestSync() {
+func (rpc *Rpc) RequestAsyn(session ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) RespondAsyn() {
+func (rpc *Rpc) RequestSync(session ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) RespondSync() {
+func (rpc *Rpc) Respond(rpcRequest *RpcRequest, wpk *packet.WritePacket) {
 
 }
