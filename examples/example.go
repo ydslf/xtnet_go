@@ -61,5 +61,5 @@ func main() {
 	testServer.Start()
 	loop.Run()
 
-	time.Sleep(time.Minute * 10)
+	time.Sleep(time.Second * 1)
 }
