@@ -46,17 +46,6 @@ func main() {
 	})
 	testServer.SetAgent(netAgent)
 
-	/*
-		testServer.SetCallback(func(session mynet.Session) {
-			fmt.Println("OnAccept")
-		}, func(session mynet.Session, data []byte) {
-			msgID := data[0:4]
-			fmt.Println("OnSessionData: ", msgID, data[4])
-		}, func(session mynet.Session) {
-			fmt.Println("OnSessionClose")
-		})
-	*/
-
 	fmt.Println(testServer)
 	testServer.Start()
 	loop.Run()
