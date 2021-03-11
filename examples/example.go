@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
-	"time"
 	"xtnet/frame"
 	xtnet "xtnet/net"
 	"xtnet/net/packet"
@@ -49,6 +48,4 @@ func main() {
 	fmt.Println(testServer)
 	testServer.Start()
 	loop.Run()
-
-	time.Sleep(time.Second * 1)
 }
