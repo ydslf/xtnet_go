@@ -10,7 +10,7 @@ Tcp包结构
 | pktLen  | msgDirection | msgID |          msgBody          |    客户端消息(网关不做router逻辑,根据msgDirection判断发送给哪个前端服务器)
 | pktLen  | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
 
-websocket包机构
+websocket包结构
 相对于Tcp包结构，没有pkgLen
 
 

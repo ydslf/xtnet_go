@@ -28,7 +28,8 @@ import (
 */
 
 func main() {
-	loop := frame.NewLoop()
+	serviceMain := frame.NewService()
+	loop := serviceMain.GetLoop()
 	netRpc := xtnet.NewRpc(loop)
 	netAgent := xtnet.NewAgent(loop)
 	testServer := tcp.NewServer("127.0.0.1:7001", 1024, binary.BigEndian, 1024)

@@ -7,6 +7,16 @@ type Service struct {
 	Rpc  string
 }
 
+func NewService() *Service {
+	return &Service{
+		loop: NewLoop(),
+	}
+}
+
+func (service *Service) GetLoop() *Loop {
+	return service.loop
+}
+
 func (service *Service) Run() {
 	service.loop.Run()
 }
