@@ -4,6 +4,7 @@ import (
 	_ "runtime"
 	"time"
 	_ "unsafe" // for go:linkname
+	"xtnet/frame"
 )
 
 //go:linkname runtimeNano runtime.nanotime
@@ -31,21 +32,42 @@ type runtimeTimer struct {
 	status   uint32
 }
 
-//go:linkname startTimer runtime.startTimer
-func startTimer(*runtimeTimer)
+//go:linkname deltimer runtime.deltimer
+func deltimer(*runtimeTimer) bool
 
 //go:linkname addtimer runtime.addtimer
 func addtimer(t *runtimeTimer)
 
-func goFunc(arg interface{}, seq uintptr) {
-	go arg.(func())()
+func systemTimerFunc(arg interface{}, seq uintptr) {
+	timer := arg.(*SystemTimer)
+	timer.loop.Post(func() {
+		timer.cb()
+	})
 }
 
-func AfterFunc(d time.Duration, f func()) {
-	r := runtimeTimer{
-		when: when(d),
-		f:    goFunc,
-		arg:  f,
+type SystemTimer struct {
+	loop *frame.Loop
+	cb   Cb
+	r    runtimeTimer
+}
+
+func NewSystemTimer(loop *frame.Loop) *SystemTimer {
+	return &SystemTimer{
+		loop: loop,
 	}
-	addtimer(&r)
+}
+
+func (timer *SystemTimer) Start(d time.Duration, repeat bool, cb Cb) {
+	timer.cb = cb
+	timer.r.when = when(d)
+	timer.r.f = systemTimerFunc
+	timer.r.arg = timer
+	addtimer(&timer.r)
+}
+
+func (timer *SystemTimer) Stop() {
+	if timer.r.f == nil {
+		panic("time: Stop called on uninitialized Timer")
+	}
+	deltimer(&timer.r)
 }

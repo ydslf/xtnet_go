@@ -16,7 +16,7 @@ type SliceMock struct {
 }
 
 func main() {
-	var testStruct = &TestStructTobytes{1000}
+	var testStruct = &TestStructTobytes{1234}
 	Len := unsafe.Sizeof(*testStruct)
 	testBytes := &SliceMock{
 		addr: uintptr(unsafe.Pointer(testStruct)),
@@ -24,6 +24,7 @@ func main() {
 		len:  int(Len),
 	}
 
+	fmt.Println(testStruct)
 	fmt.Printf("%p\n", testStruct)
 	fmt.Println(unsafe.Pointer(testStruct))
 
@@ -35,7 +36,7 @@ func main() {
 	test1 := []byte{111, 0, 1, 2}
 	test2 := string(test1)
 	test3, _ := strconv.Atoi(test2)
-	fmt.Println(test3)
+	fmt.Println("Atoi: ", test3)
 
 	var a int32
 	fmt.Println(a)

@@ -6,11 +6,11 @@ import (
 )
 
 const (
-	RPCTYPE_DIRECT        int8 = 0 //直接，没有RPC
-	RPCTYPE_REQUEST_ASYN  int8 = 1 //异步RPC请求
-	PRCTYPE_REQUEST_SYNC  int8 = 2 //同步RPC请求
-	RPCTYPE_RESPONSE_ASYN int8 = 3 //异步RPC回应
-	RPCTYPE_RESPONSE_SYNC int8 = 4 //同步RPC回应
+	RpcTypeDirect        int8 = 0 //直接，没有RPC
+	RpcTypeRequestAsync  int8 = 1 //异步RPC请求
+	PrcTypeRequestSync   int8 = 2 //同步RPC请求
+	RpcTypeResponseAsync int8 = 3 //异步RPC回应
+	RpcTypeResponseSync  int8 = 4 //同步RPC回应
 )
 
 type RpcRequest struct {
@@ -44,20 +44,20 @@ func (rpc *Rpc) HandleSessionPacket(session ISession, rpk *packet.ReadPacket) {
 	contextID := rpk.ReadInt32()
 
 	switch rpcType {
-	case RPCTYPE_DIRECT:
+	case RpcTypeDirect:
 		rpc.loop.Post(func() {
 			rpc.handleRpcDirect(session, rpk)
 		})
-	case RPCTYPE_REQUEST_ASYN:
+	case RpcTypeRequestAsync:
 		rpc.loop.Post(func() {
 			rpc.handleRpcRequest(session, rpcType, contextID, rpk)
 		})
-	case PRCTYPE_REQUEST_SYNC:
+	case PrcTypeRequestSync:
 		rpc.loop.Post(func() {
 			rpc.handleRpcRequest(session, rpcType, contextID, rpk)
 		})
-	case RPCTYPE_RESPONSE_ASYN:
-	case RPCTYPE_RESPONSE_SYNC:
+	case RpcTypeResponseAsync:
+	case RpcTypeResponseSync:
 	default:
 	}
 }

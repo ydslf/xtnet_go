@@ -4,12 +4,17 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"xtnet/frame"
 )
 
 func TestSystemTimer(t *testing.T) {
-	AfterFunc(time.Millisecond*1, func() {
-		fmt.Println("hahah")
+	serviceMain := frame.NewService()
+	loop := serviceMain.GetLoop()
+	manager := NewManager(loop)
+	timer := manager.NewTimer(TypeSystem)
+	timer.Start(time.Second*1, false, func() {
+		fmt.Println("startedEnd", time.Now())
+		fmt.Println(timer)
 	})
-
-	time.Sleep(time.Hour * 1)
+	loop.Run()
 }
