@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	TypeSystem int8 = 1 //系统timer
+	System int8 = 1 //系统timer
 )
 
 type Cb func()
@@ -28,7 +28,7 @@ func NewManager(loop *frame.Loop) *Manager {
 
 func (manager *Manager) NewTimer(timerType int8) ITimer {
 	switch timerType {
-	case TypeSystem:
+	case System:
 		return NewSystemTimer(manager.loop)
 	default:
 		return nil

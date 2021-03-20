@@ -10,6 +10,12 @@ import (
 //go:linkname runtimeNano runtime.nanotime
 func runtimeNano() int64
 
+//go:linkname deltimer runtime.deltimer
+func deltimer(*runtimeTimer) bool
+
+//go:linkname addtimer runtime.addtimer
+func addtimer(t *runtimeTimer)
+
 func when(d time.Duration) int64 {
 	if d <= 0 {
 		return runtimeNano()
@@ -31,12 +37,6 @@ type runtimeTimer struct {
 	nextwhen int64
 	status   uint32
 }
-
-//go:linkname deltimer runtime.deltimer
-func deltimer(*runtimeTimer) bool
-
-//go:linkname addtimer runtime.addtimer
-func addtimer(t *runtimeTimer)
 
 func systemTimerFunc(arg interface{}, seq uintptr) {
 	timer := arg.(*SystemTimer)
@@ -62,6 +62,10 @@ func (timer *SystemTimer) Start(d time.Duration, repeat bool, cb Cb) {
 	timer.r.when = when(d)
 	timer.r.f = systemTimerFunc
 	timer.r.arg = timer
+	if repeat {
+		timer.r.period = int64(d)
+	}
+
 	addtimer(&timer.r)
 }
 

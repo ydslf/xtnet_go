@@ -73,9 +73,9 @@ func (server *Server) listen() {
 			continue
 		}
 		//TODO
-		//不在这创建pkgProcessor，应该由上层创建
-		pkgProcessor := NewPktProcessorDefault(server.maxPkgSize, server.order)
-		session := newSession(conn, pkgProcessor, server.sendBuffSize)
+		//不在这创建pktProcessor，应该由上层创建
+		pktProcessor := NewPktProcessorDefault(server.maxPkgSize, server.order)
+		session := newSession(conn, pktProcessor, server.sendBuffSize)
 		session.setCallback(server.onSessionData, server.onSessionClose)
 		session.setAgent(server.agent)
 		session.start()

@@ -8,7 +8,7 @@ type Loop struct {
 
 func NewLoop() *Loop {
 	return &Loop{
-		loopFuns: make(chan LoopFun),
+		loopFuns: make(chan LoopFun, 100),
 	}
 }
 
@@ -17,7 +17,10 @@ func (loop *Loop) Post(f LoopFun) {
 }
 
 func (loop *Loop) Run() {
-	for f := range loop.loopFuns {
-		f()
+	for {
+		select {
+		case f := <-loop.loopFuns:
+			f()
+		}
 	}
 }

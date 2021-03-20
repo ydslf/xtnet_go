@@ -52,10 +52,15 @@ func TestSystemTimer() {
 	serviceMain := frame.NewService()
 	loop := serviceMain.GetLoop()
 	manager := xttimer.NewManager(loop)
-	timer := manager.NewTimer(xttimer.TypeSystem)
+	timer := manager.NewTimer(xttimer.System)
 	timer.Start(time.Second*5, false, func() {
 		fmt.Println("startedEnd", time.Now())
 		fmt.Println(timer)
+	})
+	timer1 := manager.NewTimer(xttimer.System)
+	timer1.Start(time.Second*1, true, func() {
+		fmt.Println("tick", time.Now())
+		fmt.Println(timer1)
 	})
 	loop.Run()
 }
