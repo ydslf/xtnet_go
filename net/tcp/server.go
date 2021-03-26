@@ -52,6 +52,7 @@ func (server *Server) Start() bool {
 	}
 
 	server.listener = listener
+	server.wgClose.Add(1)
 	go server.listen()
 	return true
 }
@@ -63,7 +64,6 @@ func (server *Server) Close() {
 }
 
 func (server *Server) listen() {
-	server.wgClose.Add(1)
 	defer server.wgClose.Done()
 
 	for server.close == false {
