@@ -8,10 +8,11 @@ import (
 )
 
 const (
-	LevelNone    = 0
-	LevelError   = 1
-	LevelWarning = 2
-	LevelDebug   = 3
+	LevelNone  = 0
+	LevelError = 1
+	LevelWarn  = 2
+	LevelDebug = 3
+	LevelNum   = 4
 )
 
 const (
@@ -20,10 +21,19 @@ const (
 	FileSizeMax       = 64 * 1024 * 1024
 )
 
+var levelConfig = [LevelNum]struct {
+	text string
+}{
+	{text: "[NONE] "},
+	{text: "[ERROR] "},
+	{text: "[WARN] "},
+	{text: "[DEBUG] "},
+}
+
 type Logger struct {
 	dir           string
 	fileSizeLimit int
-	screenPrint   bool
+	screen        bool
 	logLevel      int
 	async         bool
 	close         bool
@@ -42,12 +52,11 @@ type loggerMsg struct {
 	time    time.Time
 }
 
-func NewLogger(dir string, fileSizeLimit int, screenPrint bool) *Logger {
+func NewLogger(dir string, fileSizeLimit int, screen bool) *Logger {
 	logger := new(Logger)
 	logger.dir = dir
-	logger.dirReal = dir
 	logger.fileSizeLimit = fileSizeLimit
-	logger.screenPrint = screenPrint
+	logger.screen = screen
 	logger.logLevel = LevelNone
 	logger.close = false
 	logger.msgChan = make(chan *loggerMsg, MsgChanSize)
@@ -67,8 +76,8 @@ func (logger *Logger) SetLogLevel(level int) {
 	logger.logLevel = level
 }
 
-func (logger *Logger) SetScreenPrint(screenPrint bool) {
-	logger.screenPrint = screenPrint
+func (logger *Logger) SetScreenPrint(screen bool) {
+	logger.screen = screen
 }
 
 func (logger *Logger) LogDebug(format string, v ...interface{}) {
@@ -78,11 +87,11 @@ func (logger *Logger) LogDebug(format string, v ...interface{}) {
 	logger.pushLog(LevelDebug, format, v...)
 }
 
-func (logger *Logger) LogWarning(format string, v ...interface{}) {
-	if logger.logLevel < LevelWarning {
+func (logger *Logger) LogWarn(format string, v ...interface{}) {
+	if logger.logLevel < LevelWarn {
 		return
 	}
-	logger.pushLog(LevelWarning, format, v...)
+	logger.pushLog(LevelWarn, format, v...)
 }
 
 func (logger *Logger) LogError(format string, v ...interface{}) {
@@ -115,9 +124,12 @@ func (logger *Logger) showLog(content string, level int, time time.Time) {
 
 	logger.buf.Reset()
 	logger.buf.WriteString(time.Format("2006_01_02 15:04:05"))
+	logger.buf.WriteString(levelConfig[level].text)
 	logger.buf.WriteString(content)
 	logger.buf.WriteString("\n")
 	logger.file.Write(logger.buf.Bytes())
+
+	logger.screenPrint(level)
 }
 
 func (logger *Logger) createDir() bool {
