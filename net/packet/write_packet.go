@@ -59,7 +59,7 @@ func (wpk *WritePacket) expand(size uint) bool {
 	}
 
 	dataNew := make([]byte, size+wpk.reserveSize, size+wpk.reserveSize)
-	copy(dataNew, wpk.data)
+	copy(dataNew, wpk.dataReal)
 	wpk.dataReal = dataNew
 	wpk.data = wpk.dataReal[wpk.reserveSize:]
 	wpk.dataSize += size
