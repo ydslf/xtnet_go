@@ -37,6 +37,7 @@ func NewPktProcessorDefault(maxPkgSize uint32, order binary.ByteOrder) PktProces
 }
 
 func (process *PktProcessorDefault) UnPack(session *Session) ([]byte, error) {
+	//TODO 优化 session中设置recieve buffer
 	pktLenBuff := make([]byte, process.pktHeadSize)
 	if _, err := io.ReadFull(session.conn, pktLenBuff); err != nil {
 		return nil, err
