@@ -16,5 +16,5 @@ func TestSystemTimer(t *testing.T) {
 		fmt.Println("startedEnd", time.Now())
 		fmt.Println(timer)
 	})
-	loop.Run()
+	loop.RunOnce()
 }

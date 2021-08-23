@@ -8,6 +8,7 @@ type Loop struct {
 
 func NewLoop() *Loop {
 	return &Loop{
+		//TODO chan长度参数化，或设置为一个常量
 		loopFuns: make(chan LoopFun, 10000),
 	}
 }
@@ -23,4 +24,10 @@ func (loop *Loop) Run() {
 			f()
 		}
 	}
+}
+
+func (loop *Loop) RunOnce() {
+	f := <-loop.loopFuns
+	//TODO 错误检测
+	f()
 }

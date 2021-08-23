@@ -24,6 +24,12 @@ login    lobby  lobby     game  game            frontend server
 
         client  client                          client
 
+
+1. 通用序列号工具
+2. netAgent 注册消息函数，能自动反序列化初函数的参数
+3. rpc完善
+4. 网络库完善
+
 #### 安装教程
 
 1.  xxxx
