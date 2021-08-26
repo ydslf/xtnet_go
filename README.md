@@ -29,6 +29,7 @@ login    lobby  lobby     game  game            frontend server
 2. netAgent 注册消息函数，能自动反序列化初函数的参数
 3. rpc完善
 4. 网络库完善
+5. 加一种计时器，并且加上crontab
 
 #### 安装教程
 

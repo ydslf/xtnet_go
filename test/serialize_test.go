@@ -8,12 +8,39 @@ import (
 	"fmt"
 	"testing"
 	"unsafe"
+	xt_encoding "xtnet/encoding"
 )
 
 type TestStructTobytes1 struct {
 	Data   int64
 	DArray [3]int32
 	Data1  int32
+}
+
+type Person struct {
+	Name   string
+	Age    uint8
+	Height float64
+}
+
+type Group struct {
+	Name    string
+	Members []Person
+}
+
+type A struct {
+	Name     string
+	BirthDay int64
+	Phone    string
+	Siblings int64
+	Spouse   bool
+	Money    float64
+}
+type B struct {
+	BirthDay int64
+	Siblings int64
+	Spouse   bool
+	Money    float64
 }
 
 func TestFloat(t *testing.T) {
@@ -51,6 +78,63 @@ func TestStringSize(t *testing.T) {
 	s++
 	s += l
 	fmt.Println(s)
+}
+
+func TestXtEncode(t *testing.T) {
+	p := Group{
+		Name: "test",
+		Members: []Person{
+			{
+				Name:   "join",
+				Age:    21,
+				Height: 5.9,
+			},
+			{
+				Name:   "Tom",
+				Age:    23,
+				Height: 5.8,
+			},
+			{
+				Name:   "Alan",
+				Age:    24,
+				Height: 6,
+			},
+		},
+	}
+
+	fmt.Println(p)
+	buf, _ := xt_encoding.Encode(p)
+	fmt.Println(buf)
+
+	pd := &Group{}
+	xt_encoding.Decode(buf, pd)
+	fmt.Println(pd)
+}
+
+func TestGoBinaryArray(t *testing.T) {
+	var enInt [3]int32
+	enInt[0] = 1
+	enInt[1] = 2
+	enInt[2] = 3
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, enInt)
+
+	var DeInt [3]int32
+	reader := bytes.NewReader(buf.Bytes())
+	binary.Read(reader, binary.BigEndian, &DeInt)
+	fmt.Printf("%v\n", DeInt)
+}
+
+func TestGoBinarySlice(t *testing.T) {
+	var enInt []int32
+	enInt = append(enInt, 1, 2, 3)
+	buf := new(bytes.Buffer)
+	binary.Write(buf, binary.BigEndian, enInt)
+
+	var DeInt []int32
+	reader := bytes.NewReader(buf.Bytes())
+	binary.Read(reader, binary.BigEndian, &DeInt)
+	fmt.Printf("%v\n", DeInt)
 }
 
 func TestGoBinary(t *testing.T) {
@@ -106,6 +190,93 @@ func TestJson(t *testing.T) {
 	valueDe := &TestStructTobytes1{}
 	json.Unmarshal(b, valueDe)
 	fmt.Printf("%v\n", valueDe)
+}
+
+func BenchmarkEncode(b *testing.B) {
+	p := Group{
+		Name: "test",
+		Members: []Person{
+			{
+				Name:   "John",
+				Age:    21,
+				Height: 5.9,
+			},
+			{
+				Name:   "Tom",
+				Age:    23,
+				Height: 5.8,
+			},
+			{
+				Name:   "Alan",
+				Age:    24,
+				Height: 6,
+			},
+		},
+	}
+
+	for i := 0; i < b.N; i++ {
+		xt_encoding.Encode(p)
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	p := Group{
+		Name: "test",
+		Members: []Person{
+			{
+				Name:   "join",
+				Age:    21,
+				Height: 5.9,
+			},
+			{
+				Name:   "Tom",
+				Age:    23,
+				Height: 5.8,
+			},
+			{
+				Name:   "Alan",
+				Age:    24,
+				Height: 6,
+			},
+		},
+	}
+
+	buf, _ := xt_encoding.Encode(p)
+
+	pd := &Group{}
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		xt_encoding.Decode(buf, pd)
+	}
+}
+
+func BenchmarkEncode1(b *testing.B) {
+	p := A{
+		Name:     "abcdefghijklmno",
+		BirthDay: 123,
+		Phone:    "1234567890",
+		Siblings: 456,
+		Spouse:   true,
+		Money:    123.456,
+	}
+
+	for i := 0; i < b.N; i++ {
+		xt_encoding.Encode(p)
+	}
+}
+
+func BenchmarkEncodeFixStruct(b *testing.B) {
+	p := B{
+		BirthDay: 123,
+		Siblings: 456,
+		Spouse:   true,
+		Money:    123.456,
+	}
+
+	for i := 0; i < b.N; i++ {
+		xt_encoding.Encode(p)
+	}
 }
 
 func BenchmarkGoBinary(b *testing.B) {

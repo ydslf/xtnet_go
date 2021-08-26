@@ -40,7 +40,7 @@ func (rpk *ReadPacket) CheckSize(size uint) bool {
 
 func (rpk *ReadPacket) PeakData(size uint) []byte {
 	if rpk.CheckSize(size) {
-		return rpk.data[rpk.pos:]
+		return rpk.data[rpk.pos : rpk.pos+size]
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func (rpk *ReadPacket) PeakData(size uint) []byte {
 func (rpk *ReadPacket) ReadData(size uint) []byte {
 	var ret []byte
 	if rpk.CheckSize(size) {
-		ret = rpk.data[rpk.pos:]
+		ret = rpk.data[rpk.pos : rpk.pos+size]
 		rpk.pos += size
 	}
 	return ret
