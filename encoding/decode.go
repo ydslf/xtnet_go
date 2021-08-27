@@ -113,12 +113,9 @@ func (d *decoder) uint64() uint64 {
 	return x
 }
 
-func (d *decoder) int8() int8 { return int8(d.uint8()) }
-
+func (d *decoder) int8() int8   { return int8(d.uint8()) }
 func (d *decoder) int16() int16 { return int16(d.uint16()) }
-
 func (d *decoder) int32() int32 { return int32(d.uint32()) }
-
 func (d *decoder) int64() int64 { return int64(d.uint64()) }
 
 func (d *decoder) readPrefix() uint64 {
@@ -132,10 +129,6 @@ func (d *decoder) readPrefix() uint64 {
 		}
 	}
 	return l
-}
-
-func (d *decoder) readBuf(l uint) []byte {
-	return nil
 }
 
 func (d *decoder) readString(v reflect.Value) {
