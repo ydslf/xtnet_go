@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"math"
 	"reflect"
+	"xtnet/util"
 )
 
 func Encode(obj interface{}) ([]byte, error) {
@@ -22,6 +23,25 @@ func Encode(obj interface{}) ([]byte, error) {
 	e.write(v)
 
 	return buf, nil
+}
+
+func Encode2Buf(buf *util.Buffer, obj interface{}) error {
+	v := reflect.ValueOf(obj)
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	size, _, err := dataSize(v)
+	if err != nil {
+		return err
+	}
+
+	buf.MakeSureWriteEnough(size)
+	e := &encoder{order: binary.BigEndian, buf: buf.GetWriteData()}
+	e.write(v)
+	err = buf.AddWritePos(size)
+
+	return err
 }
 
 type encoder struct {
@@ -148,7 +168,7 @@ func (e *encoder) writeArray(v reflect.Value, prefix bool) {
 		l := len(bytes)
 		if l > 0 {
 			copy(e.buf[e.offset:], bytes)
-			e.offset += len(bytes)
+			e.offset += l
 		}
 		return
 	}

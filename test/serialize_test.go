@@ -9,6 +9,7 @@ import (
 	"testing"
 	"unsafe"
 	xt_encoding "xtnet/encoding"
+	"xtnet/util"
 )
 
 type TestStructTobytes1 struct {
@@ -108,6 +109,17 @@ func TestXtEncode(t *testing.T) {
 
 	pd := &Group{}
 	xt_encoding.Decode(buf, pd)
+	fmt.Println(pd)
+
+	fmt.Println("-------------------------------------------")
+
+	fmt.Println(p)
+	buf1 := util.NewBuffer()
+	xt_encoding.Encode2Buf(buf1, p)
+	fmt.Println(buf1.GetReadData())
+
+	pd1 := &Group{}
+	xt_encoding.Decode(buf1.GetReadData(), pd1)
 	fmt.Println(pd)
 }
 
@@ -214,8 +226,39 @@ func BenchmarkEncode(b *testing.B) {
 		},
 	}
 
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		xt_encoding.Encode(p)
+	}
+}
+
+func BenchmarkEncode2Buf(b *testing.B) {
+	p := Group{
+		Name: "test",
+		Members: []Person{
+			{
+				Name:   "John",
+				Age:    21,
+				Height: 5.9,
+			},
+			{
+				Name:   "Tom",
+				Age:    23,
+				Height: 5.8,
+			},
+			{
+				Name:   "Alan",
+				Age:    24,
+				Height: 6,
+			},
+		},
+	}
+
+	buf := util.NewBuffer()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		buf.Reset()
+		xt_encoding.Encode2Buf(buf, p)
 	}
 }
 
@@ -242,11 +285,10 @@ func BenchmarkDecode(b *testing.B) {
 	}
 
 	buf, _ := xt_encoding.Encode(p)
-
-	pd := &Group{}
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
+		pd := &Group{}
 		xt_encoding.Decode(buf, pd)
 	}
 }

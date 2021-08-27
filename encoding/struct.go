@@ -76,23 +76,30 @@ func (e *encoder) writeStruct(v reflect.Value) {
 	}
 }
 
-func (d *decoder) readStruct(v reflect.Value) {
+func (d *decoder) readStruct(v reflect.Value) error {
 	t := v.Type()
 
 	cache, find := structCaches.Load(t)
 	if find {
 		sc := cache.(*structCache)
 		for _, structIndex := range sc.indexes {
-			d.read(v.Field(structIndex))
+			err := d.read(v.Field(structIndex))
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		sc := &structCache{}
 		for i := 0; i < v.NumField(); i++ {
 			if sf := t.Field(i); sf.Tag.Get("xt") != "-" {
-				d.read(v.Field(i))
+				err := d.read(v.Field(i))
+				if err != nil {
+					return err
+				}
 				sc.indexes = append(sc.indexes, i)
 			}
 		}
 		structCaches.Store(t, sc)
 	}
+	return nil
 }
