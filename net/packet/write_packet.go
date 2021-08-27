@@ -23,7 +23,7 @@ type WritePacket struct {
 	pos         uint
 }
 
-func SetWPKMaxLen(size uint) {
+func SetWpkMaxLen(size uint) {
 	if size > wpkMaxLen {
 		wpkMaxLen = size
 	}
@@ -58,9 +58,10 @@ func (wpk *WritePacket) expand(size uint) bool {
 		return false
 	}
 
-	dataNew := make([]byte, size+wpk.reserveSize, size+wpk.reserveSize)
-	copy(dataNew, wpk.dataReal)
-	wpk.dataReal = dataNew
+	sizeRealNew := wpk.reserveSize + wpk.dataSize + size
+	dataRealNew := make([]byte, sizeRealNew, sizeRealNew)
+	copy(dataRealNew, wpk.dataReal[:wpk.reserveSize+wpk.pos])
+	wpk.dataReal = dataRealNew
 	wpk.data = wpk.dataReal[wpk.reserveSize:]
 	wpk.dataSize += size
 
