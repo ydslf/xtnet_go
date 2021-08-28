@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 )
 
@@ -36,7 +37,8 @@ type Logger struct {
 	screen        bool
 	logLevel      int
 	async         bool
-	close         bool
+	mutex         sync.Mutex
+	wgClose       sync.WaitGroup
 	msgChan       chan *loggerMsg
 
 	dirReal      string
@@ -52,13 +54,13 @@ type loggerMsg struct {
 	time    time.Time
 }
 
-func NewLogger(dir string, fileSizeLimit int, screen bool) *Logger {
+func NewLogger(dir string, fileSizeLimit int, screen bool, sync bool) *Logger {
 	logger := new(Logger)
 	logger.dir = dir
 	logger.fileSizeLimit = fileSizeLimit
 	logger.screen = screen
 	logger.logLevel = LevelNone
-	logger.close = false
+	logger.async = sync
 	logger.msgChan = make(chan *loggerMsg, MsgChanSize)
 
 	if logger.fileSizeLimit < FileSizeMin {
@@ -67,9 +69,19 @@ func NewLogger(dir string, fileSizeLimit int, screen bool) *Logger {
 		logger.fileSizeLimit = FileSizeMax
 	}
 
-	go logger.worker()
+	if logger.async {
+		logger.wgClose.Add(1)
+		go logger.worker()
+	}
 
 	return logger
+}
+
+func (logger *Logger) Close() {
+	if logger.async {
+		close(logger.msgChan)
+		logger.wgClose.Wait()
+	}
 }
 
 func (logger *Logger) SetLogLevel(level int) {
@@ -104,10 +116,19 @@ func (logger *Logger) LogError(format string, v ...interface{}) {
 func (logger *Logger) pushLog(level int, format string, v ...interface{}) {
 	content := fmt.Sprintf(format, v...)
 	msg := &loggerMsg{content, level, time.Now()}
-	logger.msgChan <- msg
+
+	if logger.async {
+		logger.msgChan <- msg
+	} else {
+		logger.mutex.Lock()
+		logger.showLog(msg.content, msg.level, msg.time)
+		logger.mutex.Unlock()
+	}
 }
 
 func (logger *Logger) worker() {
+	defer logger.wgClose.Done()
+
 	for msg := range logger.msgChan {
 		logger.showLog(msg.content, msg.level, msg.time)
 	}
@@ -129,7 +150,9 @@ func (logger *Logger) showLog(content string, level int, time time.Time) {
 	logger.buf.WriteString("\n")
 	logger.file.Write(logger.buf.Bytes())
 
-	logger.screenPrint(level)
+	if logger.screen {
+		logger.screenPrint(level)
+	}
 }
 
 func (logger *Logger) createDir() bool {

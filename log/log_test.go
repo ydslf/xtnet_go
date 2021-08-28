@@ -6,7 +6,7 @@ import (
 )
 
 func TestLog(t *testing.T) {
-	logger := NewLogger("output/log", 1024, false)
+	logger := NewLogger("output/log", 1024, false, true)
 	logger.SetLogLevel(LevelDebug)
 	logger.LogDebug("我是debug")
 	logger.LogWarn("我是warn")
