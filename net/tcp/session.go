@@ -8,26 +8,26 @@ import (
 )
 
 type Session struct {
-	conn         net.Conn
-	pktProcessor PktProcessor
-	close        bool
-	wgClose      sync.WaitGroup
-	sendChan     chan []byte
-
+	conn           net.Conn
+	pktProcessor   IPktProcessor
+	close          bool
+	wgClose        sync.WaitGroup
+	sendChan       chan []byte
+	userData       interface{}
 	onSessionData  mynet.OnSessionData
 	onSessionClose mynet.OnSessionClose
 	agent          mynet.IAgent
-
-	userData interface{}
 }
 
-func newSession(conn net.Conn, pktProcessor PktProcessor, sendBuffSize uint32) *Session {
-	return &Session{
+func newSession(conn net.Conn, pktProcessor IPktProcessor, sendBuffSize int) *Session {
+	session := &Session{
 		conn:         conn,
 		pktProcessor: pktProcessor,
 		close:        false,
 		sendChan:     make(chan []byte, sendBuffSize),
 	}
+
+	return session
 }
 
 func (session *Session) setCallback(onSessionData mynet.OnSessionData, onSessionClose mynet.OnSessionClose) {
@@ -56,6 +56,14 @@ func (session *Session) Close() {
 
 }
 
+func (session *Session) SetUserData(userData interface{}) {
+	session.userData = userData
+}
+
+func (session *Session) GetUserData() interface{} {
+	return session.userData
+}
+
 func (session *Session) start() {
 	go session.readRoutine()
 	go session.writeRoutine()
@@ -67,7 +75,7 @@ func (session *Session) readRoutine() {
 		if err != nil {
 			//TODO
 			//LOG
-			//CLOSE
+			session.Close()
 			return
 		}
 

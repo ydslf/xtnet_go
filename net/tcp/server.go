@@ -1,33 +1,29 @@
 package tcp
 
 import (
-	"encoding/binary"
-	"fmt"
 	"net"
 	"sync"
+	xtnet_go "xtnet"
 	mynet "xtnet/net"
 )
 
 type Server struct {
 	addr         string
-	maxPkgSize   uint32
-	order        binary.ByteOrder
-	sendBuffSize uint32
+	sendBuffSize int
 	close        bool
 	listener     net.Listener
 	wgClose      sync.WaitGroup
 
-	onAccept       mynet.OnAccept
-	onSessionData  mynet.OnSessionData
-	onSessionClose mynet.OnSessionClose
-	agent          mynet.IAgent
+	onAccept          mynet.OnAccept
+	onSessionData     mynet.OnSessionData
+	onSessionClose    mynet.OnSessionClose
+	pktProcessorMaker IPktProcessorMaker
+	agent             mynet.IAgent
 }
 
-func NewServer(addr string, maxPkgSize uint32, order binary.ByteOrder, sendBuffSize uint32) *Server {
+func NewServer(addr string, sendBuffSize int) *Server {
 	return &Server{
 		addr:         addr,
-		maxPkgSize:   maxPkgSize,
-		order:        order,
 		sendBuffSize: sendBuffSize,
 		close:        false,
 	}
@@ -46,8 +42,7 @@ func (server *Server) SetAgent(agent mynet.IAgent) {
 func (server *Server) Start() bool {
 	listener, err := net.Listen("tcp", server.addr)
 	if err != nil {
-		//TODO
-		fmt.Printf("tcp.Server.Start: %v", err)
+		xtnet_go.GetLogger().LogError("tcp.Server.Start: %v", err)
 		return false
 	}
 
@@ -69,12 +64,17 @@ func (server *Server) listen() {
 	for server.close == false {
 		conn, err := server.listener.Accept()
 		if err != nil {
-			//TODO
+			xtnet_go.GetLogger().LogError("tcp.Server.listen: %v", err)
 			continue
 		}
-		//TODO
-		//不在这创建pktProcessor，应该由上层创建
-		pktProcessor := NewPktProcessorDefault(server.maxPkgSize, server.order)
+
+		if server.pktProcessorMaker == nil {
+			server.pktProcessorMaker = NewPktProcessorMaker(pktHeadSizeDefault, maxPkgSizeDefault, orderDefault)
+		}
+
+		//连接个数限制，session列表等交给上层维护，因为是多协程的，在net.server中维护这些信息，需要加锁；
+		//上层可能是单协程的，维护这些很方便
+		pktProcessor := server.pktProcessorMaker.CreatePktProcessor()
 		session := newSession(conn, pktProcessor, server.sendBuffSize)
 		session.setCallback(server.onSessionData, server.onSessionClose)
 		session.setAgent(server.agent)

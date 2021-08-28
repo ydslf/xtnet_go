@@ -4,54 +4,46 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	xtnet_go "xtnet"
 )
-
-type PktProcessor interface {
-	UnPack(session *Session) ([]byte, error)
-	Pack(data []byte) []byte
-}
 
 var (
 	NTErrPktTooLong = errors.New("packet too long")
 	NTErrPktZero    = errors.New("packet len 0")
 )
 
-type PktProcessorDefault struct {
-	pktHeadSize uint32
-	maxPkgSize  uint32
-	byteOrder   binary.ByteOrder
-}
-
-//PktProcessorDefault
+//packet format
 /*
 	| pkgHead | 	pkgBody 	|
 	| pkgLen  | msgID |	msgBody |
 */
 
-func NewPktProcessorDefault(maxPkgSize uint32, order binary.ByteOrder) PktProcessor {
-	return &PktProcessorDefault{
-		pktHeadSize: 4,
-		maxPkgSize:  maxPkgSize,
-		byteOrder:   order,
-	}
+const (
+	maxPkgSizeDefault  uint32 = 1024 * 4
+	pktHeadSizeDefault uint32 = 4
+)
+
+var orderDefault binary.ByteOrder = binary.BigEndian
+
+type PktProcessor struct {
+	pktHeadSize uint32
+	maxPkgSize  uint32
+	byteOrder   binary.ByteOrder
+	headBuff    []byte
 }
 
-func (process *PktProcessorDefault) UnPack(session *Session) ([]byte, error) {
-	//TODO 优化 session中设置recieve buffer
-	pktLenBuff := make([]byte, process.pktHeadSize)
-	if _, err := io.ReadFull(session.conn, pktLenBuff); err != nil {
+func (process *PktProcessor) UnPack(session *Session) ([]byte, error) {
+	if _, err := io.ReadFull(session.conn, process.headBuff); err != nil {
 		return nil, err
 	}
 
-	pktLen := process.byteOrder.Uint32(pktLenBuff)
+	pktLen := process.byteOrder.Uint32(process.headBuff)
 	if pktLen > process.maxPkgSize {
-		//TODO
-		//LOG
+		xtnet_go.GetLogger().LogError("net.tcp.Unpack: pktLen > process.maxPkgSize, pktLen=%d, maxPkgSize=%d", pktLen, process.maxPkgSize)
 		return nil, NTErrPktTooLong
 	}
 	if pktLen == 0 {
-		//TODO
-		//LOG
+		xtnet_go.GetLogger().LogError("net.tcp.Unpack: pktLen=0")
 		return nil, NTErrPktZero
 	}
 
@@ -63,10 +55,33 @@ func (process *PktProcessorDefault) UnPack(session *Session) ([]byte, error) {
 	return pktData, nil
 }
 
-func (process *PktProcessorDefault) Pack(data []byte) []byte {
+func (process *PktProcessor) Pack(data []byte) []byte {
 	pktLen := uint32(len(data))
 	pktData := make([]byte, process.pktHeadSize+pktLen)
 	process.byteOrder.PutUint32(pktData, pktLen)
 	copy(pktData[process.pktHeadSize:], data)
 	return pktData
+}
+
+type PktProcessorMaker struct {
+	pktHeadSize uint32
+	maxPkgSize  uint32
+	byteOrder   binary.ByteOrder
+}
+
+func NewPktProcessorMaker(pktHeadSize uint32, maxPkgSize uint32, order binary.ByteOrder) IPktProcessorMaker {
+	return &PktProcessorMaker{
+		pktHeadSize: pktHeadSize,
+		maxPkgSize:  maxPkgSize,
+		byteOrder:   order,
+	}
+}
+
+func (m *PktProcessorMaker) CreatePktProcessor() IPktProcessor {
+	return &PktProcessor{
+		pktHeadSize: m.pktHeadSize,
+		maxPkgSize:  m.maxPkgSize,
+		byteOrder:   m.byteOrder,
+		headBuff:    make([]byte, m.pktHeadSize, m.pktHeadSize),
+	}
 }
