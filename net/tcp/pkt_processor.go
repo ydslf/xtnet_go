@@ -56,6 +56,7 @@ func (process *PktProcessor) UnPack(session *Session) ([]byte, error) {
 }
 
 func (process *PktProcessor) Pack(data []byte) []byte {
+	//TODO 加一个写buffer，或者wpk直接传到session的写协程
 	pktLen := uint32(len(data))
 	pktData := make([]byte, process.pktHeadSize+pktLen)
 	process.byteOrder.PutUint32(pktData, pktLen)

@@ -14,6 +14,7 @@ func NewLoop() *Loop {
 }
 
 func (loop *Loop) Post(f LoopFun) {
+	//TODO 判断是否满了
 	loop.loopFuns <- f
 }
 

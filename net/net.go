@@ -12,6 +12,8 @@ type OnRpcRequest func(*RpcRequest, *packet.ReadPacket)
 
 type ISession interface {
 	Send([]byte)
+	Close()
+	CloseWait()
 }
 
 type IAgent interface {
