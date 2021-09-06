@@ -57,7 +57,7 @@ func main() {
 			session.Send(msg)
 			session.Send(msg)
 			session.Send(msg)
-			session.CloseWait()
+			//session.CloseWait()
 		})
 	})
 	netAgent.SetOnSessionPacket(func(session xtnet.ISession, rpk *packet.ReadPacket) {

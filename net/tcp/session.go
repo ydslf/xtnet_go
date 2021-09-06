@@ -1,9 +1,12 @@
 package tcp
 
 import (
+	"io"
 	"net"
+	"os"
 	"sync"
 	"sync/atomic"
+	"time"
 	xtnet_go "xtnet"
 	mynet "xtnet/net"
 )
@@ -13,7 +16,6 @@ type Session struct {
 	pktProcessor   IPktProcessor
 	closed         int64
 	wgClose        sync.WaitGroup
-	closeChan      chan int
 	sendChan       chan []byte
 	userData       interface{}
 	onSessionData  mynet.OnSessionData
@@ -56,26 +58,31 @@ func (session *Session) Send(data []byte) {
 
 //关闭session
 func (session *Session) Close() {
-	session.doClose(false)
+	session.doClose(true)
 }
 
 //关闭session，等待关闭完成
 func (session *Session) CloseWait() {
-	if session.doClose(false) {
+	if session.doClose(true) {
 		session.wgClose.Wait()
 	}
 }
 
-func (session *Session) doClose(callback bool) bool {
+func (session *Session) doClose(active bool) bool {
 	if !atomic.CompareAndSwapInt64(&session.closed, 0, 1) {
-		xtnet_go.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
+		if active {
+			xtnet_go.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
+		}
 		return false
 	}
 
-	session.conn.Close()
-	close(session.sendChan)
+	if active {
+		session.conn.SetReadDeadline(time.Now())
+		close(session.sendChan)
+	} else {
+		session.conn.Close()
+		close(session.sendChan)
 
-	if callback {
 		if session.agent != nil {
 			session.agent.HandlerSessionClose(session)
 		} else {
@@ -106,8 +113,10 @@ func (session *Session) readRoutine() {
 	for {
 		data, err := session.pktProcessor.UnPack(session)
 		if err != nil {
-			xtnet_go.GetLogger().LogError("session.readRoutine: err=%v", err)
-			session.doClose(true)
+			if err != io.EOF && !os.IsTimeout(err) {
+				xtnet_go.GetLogger().LogError("session.readRoutine: err=%v", err)
+			}
+			session.doClose(false)
 			return
 		}
 
@@ -127,8 +136,10 @@ func (session *Session) writeRoutine() {
 		_, err := session.conn.Write(pktData)
 		if err != nil {
 			xtnet_go.GetLogger().LogError("session.writeRoutine: err=%v", err)
-			session.doClose(true)
-			break
+			session.doClose(false)
+			return
 		}
 	}
+
+	session.conn.Close()
 }

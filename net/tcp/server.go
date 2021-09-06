@@ -73,7 +73,7 @@ func (server *Server) listen() {
 		}
 
 		//连接个数限制，session列表等交给上层维护，因为是多协程的，在net.server中维护这些信息，需要加锁；
-		//上层可能是单协程的，维护这些很方便
+		//上层可能是单协程的，维护这些可以根据情况加锁或不加锁
 		pktProcessor := server.pktProcessorMaker.CreatePktProcessor()
 		session := newSession(conn, pktProcessor, server.sendBuffSize)
 		session.setCallback(server.onSessionData, server.onSessionClose)
