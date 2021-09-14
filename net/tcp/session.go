@@ -17,6 +17,7 @@ type Session struct {
 	closed         int64
 	wgClose        sync.WaitGroup
 	sendChan       chan []byte
+	closeChan      chan int
 	userData       interface{}
 	onSessionData  mynet.OnSessionData
 	onSessionClose mynet.OnSessionClose
@@ -29,6 +30,7 @@ func newSession(conn net.Conn, pktProcessor IPktProcessor, sendBuffSize int) *Se
 		pktProcessor: pktProcessor,
 		closed:       0,
 		sendChan:     make(chan []byte, sendBuffSize),
+		closeChan:    make(chan int, 1),
 	}
 
 	return session
@@ -56,32 +58,47 @@ func (session *Session) Send(data []byte) {
 	session.sendChan <- data
 }
 
+type closeType uint
+
+const (
+	active  closeType = 0
+	byRead  closeType = 1
+	byWrite closeType = 2
+)
+
 //关闭session
-func (session *Session) Close() {
-	session.doClose(true)
+func (session *Session) Close(waitWrite bool) {
+	session.doClose(active, waitWrite)
 }
 
 //关闭session，等待关闭完成
-func (session *Session) CloseWait() {
-	if session.doClose(true) {
+func (session *Session) CloseBlock(waitWrite bool) {
+	if session.doClose(active, waitWrite) {
 		session.wgClose.Wait()
 	}
 }
 
-func (session *Session) doClose(active bool) bool {
+func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 	if !atomic.CompareAndSwapInt64(&session.closed, 0, 1) {
-		if active {
+		if ct == active {
 			xtnet_go.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
 		}
 		return false
 	}
 
-	if active {
+	if ct == active {
 		session.conn.SetReadDeadline(time.Now())
-		close(session.sendChan)
+		if waitWrite {
+			close(session.sendChan)
+		} else {
+			session.closeChan <- 1
+		}
 	} else {
-		session.conn.Close()
-		close(session.sendChan)
+		if ct == byRead {
+			session.closeChan <- 1
+		} else {
+			session.conn.Close()
+		}
 
 		if session.agent != nil {
 			session.agent.HandlerSessionClose(session)
@@ -116,7 +133,7 @@ func (session *Session) readRoutine() {
 			if err != io.EOF && !os.IsTimeout(err) {
 				xtnet_go.GetLogger().LogError("session.readRoutine: err=%v", err)
 			}
-			session.doClose(false)
+			session.doClose(byRead, false)
 			return
 		}
 
@@ -131,15 +148,24 @@ func (session *Session) readRoutine() {
 func (session *Session) writeRoutine() {
 	defer session.wgClose.Done()
 
-	for data := range session.sendChan {
-		pktData := session.pktProcessor.Pack(data)
-		_, err := session.conn.Write(pktData)
-		if err != nil {
-			xtnet_go.GetLogger().LogError("session.writeRoutine: err=%v", err)
-			session.doClose(false)
-			return
+FOR:
+	for {
+		select {
+		case data := <-session.sendChan:
+			if data == nil {
+				break FOR
+			}
+			pktData := session.pktProcessor.Pack(data)
+			_, err := session.conn.Write(pktData)
+			if err != nil {
+				xtnet_go.GetLogger().LogError("session.writeRoutine: err=%v", err)
+				session.doClose(byWrite, false)
+				return
+			}
+
+		case <-session.closeChan:
+			break FOR
 		}
 	}
-
 	session.conn.Close()
 }

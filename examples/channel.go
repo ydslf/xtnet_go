@@ -130,13 +130,26 @@ func channelTest4() {
 			case value := <-ch:
 				fmt.Println(value, time.Now())
 			case value := <-ch1:
-				fmt.Println(value, time.Now())
+				fmt.Println(1, value, time.Now())
+				//default:
+			}
+		}
+	}()
+
+	go func() {
+		for {
+			select {
+			case value := <-ch1:
+				fmt.Println(2, value, time.Now())
 				//default:
 			}
 		}
 	}()
 
 	ch1 <- 1
+	ch1 <- 2
+	ch1 <- 3
+	//close(ch1)
 
 	time.Sleep(time.Hour * 1)
 }
@@ -167,7 +180,7 @@ func main() {
 	//channelTest1()
 	//channelTest2()
 	//channelTest3()
-	//channelTest4()
+	channelTest4()
 	//channelTest5()
-	channelClose()
+	//channelClose()
 }

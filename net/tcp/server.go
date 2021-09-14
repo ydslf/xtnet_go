@@ -3,6 +3,7 @@ package tcp
 import (
 	"net"
 	"sync"
+	"sync/atomic"
 	xtnet_go "xtnet"
 	mynet "xtnet/net"
 )
@@ -10,7 +11,7 @@ import (
 type Server struct {
 	addr         string
 	sendBuffSize int
-	close        bool
+	closed       int64
 	listener     net.Listener
 	wgClose      sync.WaitGroup
 
@@ -25,7 +26,7 @@ func NewServer(addr string, sendBuffSize int) *Server {
 	return &Server{
 		addr:         addr,
 		sendBuffSize: sendBuffSize,
-		close:        false,
+		closed:       0,
 	}
 }
 
@@ -53,15 +54,16 @@ func (server *Server) Start() bool {
 }
 
 func (server *Server) Close() {
-	server.listener.Close()
-	server.close = true
-	server.wgClose.Wait()
+	if atomic.CompareAndSwapInt64(&server.closed, 0, 1) {
+		server.listener.Close()
+		server.wgClose.Wait()
+	}
 }
 
 func (server *Server) listen() {
 	defer server.wgClose.Done()
 
-	for server.close == false {
+	for atomic.LoadInt64(&server.closed) == 0 {
 		conn, err := server.listener.Accept()
 		if err != nil {
 			xtnet_go.GetLogger().LogError("tcp.Server.listen: %v", err)

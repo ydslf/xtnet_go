@@ -53,11 +53,13 @@ func main() {
 		fmt.Println("OnAccept: ", session)
 
 		timer.Start(time.Second*2, false, func() {
-			msg, _ := encoding.Encode("abcd")
-			session.Send(msg)
-			session.Send(msg)
-			session.Send(msg)
-			//session.CloseWait()
+			msg1, _ := encoding.Encode("abc")
+			session.Send(msg1)
+			msg2, _ := encoding.Encode("def")
+			session.Send(msg2)
+			msg3, _ := encoding.Encode("ghi")
+			session.Send(msg3)
+			//session.CloseBlock(false)
 		})
 	})
 	netAgent.SetOnSessionPacket(func(session xtnet.ISession, rpk *packet.ReadPacket) {
