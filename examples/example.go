@@ -43,7 +43,7 @@ func main() {
 	loop := serviceMain.GetLoop()
 	netRpc := xtnet.NewRpc(loop)
 	netAgent := xtnet.NewAgent(loop)
-	testServer := tcp.NewServer("127.0.0.1:7001", 1024)
+	testServer := tcp.NewServer("127.0.0.1:7001", 1024, netAgent)
 
 	timerManager := xttimer.NewManager(loop)
 	timer := timerManager.NewTimer(xttimer.System)
@@ -59,6 +59,10 @@ func main() {
 			session.Send(msg2)
 			msg3, _ := encoding.Encode("ghi")
 			session.Send(msg3)
+			msg4, _ := encoding.Encode("111")
+			session.Send(msg4)
+			msg5, _ := encoding.Encode("222")
+			session.Send(msg5)
 			//session.CloseBlock(false)
 		})
 	})
@@ -68,7 +72,6 @@ func main() {
 	netAgent.SetOnSessionClose(func(session xtnet.ISession) {
 		fmt.Println("OnSessionClose")
 	})
-	testServer.SetAgent(netAgent)
 
 	fmt.Println(testServer)
 	testServer.Start()

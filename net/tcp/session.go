@@ -8,24 +8,24 @@ import (
 	"sync/atomic"
 	"time"
 	xtnet_go "xtnet"
-	mynet "xtnet/net"
+	myNet "xtnet/net"
 )
 
 type Session struct {
-	conn           net.Conn
-	pktProcessor   IPktProcessor
-	closed         int64
-	wgClose        sync.WaitGroup
-	sendChan       chan []byte
-	closeChan      chan int
-	userData       interface{}
-	onSessionData  mynet.OnSessionData
-	onSessionClose mynet.OnSessionClose
-	agent          mynet.IAgent
+	netBase      myNet.INetBase
+	conn         net.Conn
+	pktProcessor IPktProcessor
+	closed       int64
+	wgClose      sync.WaitGroup
+	sendChan     chan []byte
+	closeChan    chan int
+	userData     interface{}
+	agent        myNet.IAgent
 }
 
-func newSession(conn net.Conn, pktProcessor IPktProcessor, sendBuffSize int) *Session {
+func newSession(netBase myNet.INetBase, conn net.Conn, pktProcessor IPktProcessor, sendBuffSize int) *Session {
 	session := &Session{
+		netBase:      netBase,
 		conn:         conn,
 		pktProcessor: pktProcessor,
 		closed:       0,
@@ -36,12 +36,7 @@ func newSession(conn net.Conn, pktProcessor IPktProcessor, sendBuffSize int) *Se
 	return session
 }
 
-func (session *Session) setCallback(onSessionData mynet.OnSessionData, onSessionClose mynet.OnSessionClose) {
-	session.onSessionData = onSessionData
-	session.onSessionClose = onSessionClose
-}
-
-func (session *Session) setAgent(agent mynet.IAgent) {
+func (session *Session) setAgent(agent myNet.IAgent) {
 	session.agent = agent
 }
 
@@ -100,11 +95,7 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 			session.conn.Close()
 		}
 
-		if session.agent != nil {
-			session.agent.HandlerSessionClose(session)
-		} else {
-			session.onSessionClose(session)
-		}
+		session.agent.HandlerSessionClose(session)
 	}
 
 	return true
@@ -119,9 +110,15 @@ func (session *Session) GetUserData() interface{} {
 }
 
 func (session *Session) start() {
+	session.doStart()
+}
+
+func (session *Session) doStart() {
 	session.wgClose.Add(2)
 	go session.readRoutine()
 	go session.writeRoutine()
+
+	session.netBase.OnSessionStarted(session)
 }
 
 func (session *Session) readRoutine() {
@@ -137,11 +134,7 @@ func (session *Session) readRoutine() {
 			return
 		}
 
-		if session.agent != nil {
-			session.agent.HandlerSessionData(session, data)
-		} else {
-			session.onSessionData(session, data)
-		}
+		session.agent.HandlerSessionData(session, data)
 	}
 }
 

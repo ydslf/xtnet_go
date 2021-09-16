@@ -42,6 +42,10 @@ func (agent *Agent) HandlerAccept(session ISession) {
 	})
 }
 
+func (agent *Agent) HandlerConnected(session ISession) {
+
+}
+
 func (agent *Agent) HandlerSessionClose(session ISession) {
 	agent.loop.Post(func() {
 		agent.onSessionClose(session)

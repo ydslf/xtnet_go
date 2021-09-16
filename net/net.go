@@ -10,6 +10,10 @@ type OnSessionClose func(ISession)
 type OnRpcDirect func(ISession, *packet.ReadPacket)
 type OnRpcRequest func(*RpcRequest, *packet.ReadPacket)
 
+type INetBase interface {
+	OnSessionStarted(ISession)
+}
+
 type ISession interface {
 	Send([]byte)
 	Close(waitWrite bool)
@@ -18,6 +22,7 @@ type ISession interface {
 
 type IAgent interface {
 	HandlerAccept(ISession)
+	HandlerConnected(ISession)
 	HandlerSessionClose(ISession)
 	HandlerSessionData(ISession, []byte)
 }
