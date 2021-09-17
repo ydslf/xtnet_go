@@ -15,6 +15,7 @@ type INetBase interface {
 }
 
 type ISession interface {
+	SetAgent(IAgent)
 	Send([]byte)
 	Close(waitWrite bool)
 	CloseBlock(waitWrite bool)

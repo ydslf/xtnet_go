@@ -116,6 +116,8 @@ func TestXtEncode(t *testing.T) {
 	fmt.Println(p)
 	buf1 := util.NewBuffer()
 	xt_encoding.Encode2Buf(buf1, p)
+	buf1.Reset()
+	xt_encoding.Encode2Buf(buf1, p)
 	fmt.Println(buf1.GetReadData())
 
 	pd1 := &Group{}

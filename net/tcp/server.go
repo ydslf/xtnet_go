@@ -9,13 +9,14 @@ import (
 )
 
 type Server struct {
-	addr              string
-	sendBuffSize      int
-	closed            int64
-	listener          net.Listener
-	wgClose           sync.WaitGroup
-	pktProcessorMaker IPktProcessorMaker
-	agent             myNet.IAgent
+	addr           string
+	sendBuffSize   int
+	closed         int64
+	listener       net.Listener
+	wgClose        sync.WaitGroup
+	sessionCreator ISessionCreator
+	pktProcCreator IPktProcCreator
+	agent          myNet.IAgent
 }
 
 func NewServer(addr string, sendBuffSize int, agent myNet.IAgent) *Server {
@@ -44,6 +45,7 @@ func (server *Server) Close() {
 	if atomic.CompareAndSwapInt64(&server.closed, 0, 1) {
 		server.listener.Close()
 		server.wgClose.Wait()
+		//TODO 使用context关闭所有session
 	}
 }
 
@@ -57,15 +59,20 @@ func (server *Server) listen() {
 			continue
 		}
 
-		if server.pktProcessorMaker == nil {
-			server.pktProcessorMaker = NewPktProcessorMaker(pktHeadSizeDefault, maxPkgSizeDefault, orderDefault)
+		if server.sessionCreator == nil {
+			server.sessionCreator = NewSessionOsCreator()
+		}
+
+		if server.pktProcCreator == nil {
+			server.pktProcCreator = NewPktProcCreator(maxPkgSizeDefault, orderDefault)
 		}
 
 		//连接个数限制，session列表等交给上层维护，因为是多协程的，在net.server中维护这些信息，需要加锁；
 		//上层可能是单协程的，维护这些可以根据情况加锁或不加锁
-		pktProcessor := server.pktProcessorMaker.CreatePktProcessor()
-		session := newSession(server, conn, pktProcessor, server.sendBuffSize)
-		session.setAgent(server.agent)
+		session := server.sessionCreator.CreateSession(server, conn, server.sendBuffSize)
+		pktProc := server.pktProcCreator.CreatePktProc()
+		session.setPktProc(pktProc)
+		session.SetAgent(server.agent)
 		session.start()
 	}
 }
