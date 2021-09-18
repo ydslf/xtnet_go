@@ -19,6 +19,10 @@ const (
 	byWrite closeType = 2
 )
 
+const (
+	sendChanSizeDefault int = 1024
+)
+
 type Session struct {
 	netBase   myNet.INetBase
 	conn      net.Conn
@@ -156,18 +160,21 @@ FOR:
 }
 
 type SessionCreator struct {
+	sendChanSize int
 }
 
-func NewSessionCreator() ISessionCreator {
-	return &SessionCreator{}
+func NewSessionCreator(sendChanSize int) ISessionCreator {
+	return &SessionCreator{
+		sendChanSize: sendChanSize,
+	}
 }
 
-func (c *SessionCreator) CreateSession(netBase myNet.INetBase, conn net.Conn, sendChanSize int) ISession {
+func (c *SessionCreator) CreateSession(netBase myNet.INetBase, conn net.Conn) ISession {
 	return &Session{
 		netBase:   netBase,
 		conn:      conn,
 		closed:    0,
-		sendChan:  make(chan []byte, sendChanSize),
+		sendChan:  make(chan []byte, c.sendChanSize),
 		closeChan: make(chan int, 1),
 	}
 }

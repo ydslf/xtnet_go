@@ -43,7 +43,7 @@ func main() {
 	loop := serviceMain.GetLoop()
 	netRpc := xtnet.NewRpc(loop)
 	netAgent := xtnet.NewAgent(loop)
-	testServer := tcp.NewServer("127.0.0.1:7001", 1024, netAgent)
+	testServer := tcp.NewServer("127.0.0.1:7001", netAgent)
 
 	timerManager := xttimer.NewManager(loop)
 	timer := timerManager.NewTimer(xttimer.System)

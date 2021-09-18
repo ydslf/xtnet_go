@@ -13,11 +13,11 @@ import (
 type ReadPacket struct {
 	data       []byte
 	order      binary.ByteOrder
-	pos        uint
-	posReverse uint
+	pos        int
+	posReverse int
 }
 
-func NewReadPacket(data []byte, order binary.ByteOrder, pos uint, posReverse uint) *ReadPacket {
+func NewReadPacket(data []byte, order binary.ByteOrder, pos int, posReverse int) *ReadPacket {
 	return &ReadPacket{
 		data:       data,
 		order:      order,
@@ -30,22 +30,22 @@ func (rpk *ReadPacket) GetCurData() []byte {
 	return rpk.data[rpk.pos:rpk.posReverse]
 }
 
-func (rpk *ReadPacket) GetLeftSize() uint {
+func (rpk *ReadPacket) GetLeftSize() int {
 	return rpk.posReverse - rpk.pos
 }
 
-func (rpk *ReadPacket) CheckSize(size uint) bool {
+func (rpk *ReadPacket) CheckSize(size int) bool {
 	return rpk.GetLeftSize() >= size
 }
 
-func (rpk *ReadPacket) PeakData(size uint) []byte {
+func (rpk *ReadPacket) PeakData(size int) []byte {
 	if rpk.CheckSize(size) {
 		return rpk.data[rpk.pos : rpk.pos+size]
 	}
 	return nil
 }
 
-func (rpk *ReadPacket) ReadData(size uint) []byte {
+func (rpk *ReadPacket) ReadData(size int) []byte {
 	var ret []byte
 	if rpk.CheckSize(size) {
 		ret = rpk.data[rpk.pos : rpk.pos+size]
@@ -56,7 +56,7 @@ func (rpk *ReadPacket) ReadData(size uint) []byte {
 
 func (rpk *ReadPacket) PeakUint8() uint8 {
 	var ret uint8 = 0
-	if rpk.CheckSize(uint(unsafe.Sizeof(ret))) {
+	if rpk.CheckSize(int(unsafe.Sizeof(ret))) {
 		ret = rpk.data[rpk.pos]
 	}
 	return ret
@@ -68,7 +68,7 @@ func (rpk *ReadPacket) PeakInt8() int8 {
 
 func (rpk *ReadPacket) PeakUint16() uint16 {
 	var ret uint16 = 0
-	if rpk.CheckSize(uint(unsafe.Sizeof(ret))) {
+	if rpk.CheckSize(int(unsafe.Sizeof(ret))) {
 		ret = rpk.order.Uint16(rpk.data[rpk.pos:])
 	}
 	return ret
@@ -80,7 +80,7 @@ func (rpk *ReadPacket) PeakInt16() int16 {
 
 func (rpk *ReadPacket) PeakUint32() uint32 {
 	var ret uint32 = 0
-	if rpk.CheckSize(uint(unsafe.Sizeof(ret))) {
+	if rpk.CheckSize(int(unsafe.Sizeof(ret))) {
 		ret = rpk.order.Uint32(rpk.data[rpk.pos:])
 	}
 	return ret
@@ -92,7 +92,7 @@ func (rpk *ReadPacket) PeakInt32() int32 {
 
 func (rpk *ReadPacket) PeakUint64() uint64 {
 	var ret uint64 = 0
-	if rpk.CheckSize(uint(unsafe.Sizeof(ret))) {
+	if rpk.CheckSize(int(unsafe.Sizeof(ret))) {
 		ret = rpk.order.Uint64(rpk.data[rpk.pos:])
 	}
 	return ret
@@ -104,7 +104,7 @@ func (rpk *ReadPacket) PeakInt64() int64 {
 
 func (rpk *ReadPacket) ReadUint8() uint8 {
 	var ret uint8 = 0
-	size := uint(unsafe.Sizeof(ret))
+	size := int(unsafe.Sizeof(ret))
 	if rpk.CheckSize(size) {
 		ret = rpk.data[rpk.pos]
 		rpk.pos += size
@@ -118,7 +118,7 @@ func (rpk *ReadPacket) ReadInt8() int8 {
 
 func (rpk *ReadPacket) ReadUint16() uint16 {
 	var ret uint16 = 0
-	size := uint(unsafe.Sizeof(ret))
+	size := int(unsafe.Sizeof(ret))
 	if rpk.CheckSize(size) {
 		ret = rpk.order.Uint16(rpk.data[rpk.pos:])
 		rpk.pos += size
@@ -132,7 +132,7 @@ func (rpk *ReadPacket) ReadInt16() int16 {
 
 func (rpk *ReadPacket) ReadUint32() uint32 {
 	var ret uint32 = 0
-	size := uint(unsafe.Sizeof(ret))
+	size := int(unsafe.Sizeof(ret))
 	if rpk.CheckSize(size) {
 		ret = rpk.order.Uint32(rpk.data[rpk.pos:])
 		rpk.pos += size
@@ -146,7 +146,7 @@ func (rpk *ReadPacket) ReadInt32() int32 {
 
 func (rpk *ReadPacket) ReadUint64() uint64 {
 	var ret uint64 = 0
-	size := uint(unsafe.Sizeof(ret))
+	size := int(unsafe.Sizeof(ret))
 	if rpk.CheckSize(size) {
 		ret = rpk.order.Uint64(rpk.data[rpk.pos:])
 		rpk.pos += size

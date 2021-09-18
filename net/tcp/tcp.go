@@ -12,7 +12,7 @@ type ISession interface {
 }
 
 type ISessionCreator interface {
-	CreateSession(myNet.INetBase, net.Conn, int) ISession
+	CreateSession(myNet.INetBase, net.Conn) ISession
 }
 
 type IPktProc interface {

@@ -20,19 +20,22 @@ func (session *SessionOuterClient) receiveKey() {
 }
 
 type SessionOcCreator struct {
+	sendChanSize int
 }
 
-func NewSessionOcCreator() ISessionCreator {
-	return &SessionOcCreator{}
+func NewSessionOcCreator(sendChanSize int) ISessionCreator {
+	return &SessionOcCreator{
+		sendChanSize: sendChanSize,
+	}
 }
 
-func (c *SessionOcCreator) CreateSession(netBase myNet.INetBase, conn net.Conn, sendChanSize int) ISession {
+func (c *SessionOcCreator) CreateSession(netBase myNet.INetBase, conn net.Conn) ISession {
 	return &SessionOuterClient{
 		Session{
 			netBase:   netBase,
 			conn:      conn,
 			closed:    0,
-			sendChan:  make(chan []byte, sendChanSize),
+			sendChan:  make(chan []byte, c.sendChanSize),
 			closeChan: make(chan int, 1),
 		},
 	}

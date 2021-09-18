@@ -10,7 +10,6 @@ import (
 
 type Server struct {
 	addr           string
-	sendBuffSize   int
 	closed         int64
 	listener       net.Listener
 	wgClose        sync.WaitGroup
@@ -19,12 +18,11 @@ type Server struct {
 	agent          myNet.IAgent
 }
 
-func NewServer(addr string, sendBuffSize int, agent myNet.IAgent) *Server {
+func NewServer(addr string, agent myNet.IAgent) *Server {
 	return &Server{
-		addr:         addr,
-		sendBuffSize: sendBuffSize,
-		closed:       0,
-		agent:        agent,
+		addr:   addr,
+		closed: 0,
+		agent:  agent,
 	}
 }
 
@@ -60,7 +58,7 @@ func (server *Server) listen() {
 		}
 
 		if server.sessionCreator == nil {
-			server.sessionCreator = NewSessionOsCreator()
+			server.sessionCreator = NewSessionCreator(sendChanSizeDefault)
 		}
 
 		if server.pktProcCreator == nil {
@@ -69,7 +67,7 @@ func (server *Server) listen() {
 
 		//连接个数限制，session列表等交给上层维护，因为是多协程的，在net.server中维护这些信息，需要加锁；
 		//上层可能是单协程的，维护这些可以根据情况加锁或不加锁
-		session := server.sessionCreator.CreateSession(server, conn, server.sendBuffSize)
+		session := server.sessionCreator.CreateSession(server, conn)
 		pktProc := server.pktProcCreator.CreatePktProc()
 		session.setPktProc(pktProc)
 		session.SetAgent(server.agent)

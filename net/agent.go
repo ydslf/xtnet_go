@@ -53,7 +53,7 @@ func (agent *Agent) HandlerSessionClose(session ISession) {
 }
 
 func (agent *Agent) HandlerSessionData(session ISession, data []byte) {
-	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, uint(len(data)))
+	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, len(data))
 	if agent.netRpc != nil {
 		agent.netRpc.HandleSessionPacket(session, rpk)
 	} else {

@@ -12,24 +12,24 @@ import (
 	|-reserveSize-|----dataSize----|
 */
 
-var wpkMaxLen uint = 0xFFFF
+var wpkMaxLen int = 0xFFFF
 
 type WritePacket struct {
-	dataSize    uint
-	reserveSize uint
+	dataSize    int
+	reserveSize int
 	order       binary.ByteOrder
 	dataReal    []byte
 	data        []byte
-	pos         uint
+	pos         int
 }
 
-func SetWpkMaxLen(size uint) {
+func SetWpkMaxLen(size int) {
 	if size > wpkMaxLen {
 		wpkMaxLen = size
 	}
 }
 
-func NewWritePacket(size uint, reserveSize uint, order binary.ByteOrder) *WritePacket {
+func NewWritePacket(size int, reserveSize int, order binary.ByteOrder) *WritePacket {
 	wpk := &WritePacket{
 		dataSize:    size,
 		reserveSize: reserveSize,
@@ -41,16 +41,16 @@ func NewWritePacket(size uint, reserveSize uint, order binary.ByteOrder) *WriteP
 	return wpk
 }
 
-func (wpk *WritePacket) GetValidSize() uint {
+func (wpk *WritePacket) GetValidSize() int {
 	return wpk.dataSize - wpk.pos
 }
 
-func (wpk *WritePacket) CheckSize(size uint) bool {
+func (wpk *WritePacket) CheckSize(size int) bool {
 	return wpk.GetValidSize() >= size
 }
 
-func (wpk *WritePacket) expand(size uint) bool {
-	size = uint(util.SizeOfPow2(uint32(size)))
+func (wpk *WritePacket) expand(size int) bool {
+	size = int(util.SizeOfPow2(uint32(size)))
 	if size < 64 {
 		size = 64
 	}
@@ -68,7 +68,7 @@ func (wpk *WritePacket) expand(size uint) bool {
 	return true
 }
 
-func (wpk *WritePacket) MakeSureEnough(size uint) bool {
+func (wpk *WritePacket) MakeSureEnough(size int) bool {
 	if wpk.GetValidSize() < size {
 		if !wpk.expand(size - wpk.GetValidSize()) {
 			return false
@@ -78,7 +78,7 @@ func (wpk *WritePacket) MakeSureEnough(size uint) bool {
 }
 
 func (wpk *WritePacket) WriteUint8(value uint8) {
-	size := uint(unsafe.Sizeof(value))
+	size := int(unsafe.Sizeof(value))
 	if wpk.MakeSureEnough(size) {
 		wpk.data[wpk.pos] = value
 	}
@@ -89,7 +89,7 @@ func (wpk *WritePacket) WriteInt8(value int8) {
 }
 
 func (wpk *WritePacket) WriteUint16(value uint16) {
-	size := uint(unsafe.Sizeof(value))
+	size := int(unsafe.Sizeof(value))
 	if wpk.MakeSureEnough(size) {
 		wpk.order.PutUint16(wpk.data[wpk.pos:], value)
 	}
@@ -100,7 +100,7 @@ func (wpk *WritePacket) WriteInt16(value int16) {
 }
 
 func (wpk *WritePacket) WriteUint32(value uint32) {
-	size := uint(unsafe.Sizeof(value))
+	size := int(unsafe.Sizeof(value))
 	if wpk.MakeSureEnough(size) {
 		wpk.order.PutUint32(wpk.data[wpk.pos:], value)
 	}
@@ -111,7 +111,7 @@ func (wpk *WritePacket) WriteInt32(value int32) {
 }
 
 func (wpk *WritePacket) WriteUint64(value uint64) {
-	size := uint(unsafe.Sizeof(value))
+	size := int(unsafe.Sizeof(value))
 	if wpk.MakeSureEnough(size) {
 		wpk.order.PutUint64(wpk.data[wpk.pos:], value)
 	}

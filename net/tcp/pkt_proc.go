@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	xtnet_go "xtnet"
+	"xtnet/util"
 )
 
 var (
@@ -20,17 +21,17 @@ var (
 */
 
 const (
-	maxPkgSizeDefault uint32 = 1024 * 4
-	pktHeadSize       uint32 = 4
+	maxPkgSizeDefault int = 1024 * 4
+	pktHeadSize       int = 4
 )
 
 var orderDefault binary.ByteOrder = binary.BigEndian
 
 type PktProc struct {
-	pktHeadSize uint32
-	maxPkgSize  uint32
-	byteOrder   binary.ByteOrder
-	headBuff    []byte
+	maxPkgSize int
+	byteOrder  binary.ByteOrder
+	headBuff   []byte
+	sendBuff   util.Buffer
 }
 
 func (proc *PktProc) UnPack(session *Session) ([]byte, error) {
@@ -38,7 +39,7 @@ func (proc *PktProc) UnPack(session *Session) ([]byte, error) {
 		return nil, err
 	}
 
-	pktLen := proc.byteOrder.Uint32(proc.headBuff)
+	pktLen := int(proc.byteOrder.Uint32(proc.headBuff))
 	if pktLen > proc.maxPkgSize {
 		xtnet_go.GetLogger().LogError("net.tcp.Unpack: pktLen > process.maxPkgSize, pktLen=%d, maxPkgSize=%d", pktLen, proc.maxPkgSize)
 		return nil, NTErrPktTooLong
@@ -57,20 +58,21 @@ func (proc *PktProc) UnPack(session *Session) ([]byte, error) {
 }
 
 func (proc *PktProc) Pack(data []byte) []byte {
-	//TODO 加一个写buffer，或者wpk直接传到session的写协程
-	pktLen := uint32(len(data))
-	pktData := make([]byte, proc.pktHeadSize+pktLen)
-	proc.byteOrder.PutUint32(pktData, pktLen)
-	copy(pktData[proc.pktHeadSize:], data)
+	pktLen := len(data)
+	proc.sendBuff.Reset()
+	proc.sendBuff.MakeSureWriteEnough(pktHeadSize + pktLen)
+	pktData := make([]byte, pktHeadSize+pktLen)
+	proc.byteOrder.PutUint32(pktData, uint32(pktLen))
+	copy(pktData[pktHeadSize:], data)
 	return pktData
 }
 
 type PktProcCreator struct {
-	maxPkgSize uint32
+	maxPkgSize int
 	byteOrder  binary.ByteOrder
 }
 
-func NewPktProcCreator(maxPkgSize uint32, order binary.ByteOrder) IPktProcCreator {
+func NewPktProcCreator(maxPkgSize int, order binary.ByteOrder) IPktProcCreator {
 	return &PktProcCreator{
 		maxPkgSize: maxPkgSize,
 		byteOrder:  order,
