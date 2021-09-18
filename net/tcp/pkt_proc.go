@@ -61,9 +61,10 @@ func (proc *PktProc) Pack(data []byte) []byte {
 	pktLen := len(data)
 	proc.sendBuff.Reset()
 	proc.sendBuff.MakeSureWriteEnough(pktHeadSize + pktLen)
-	pktData := make([]byte, pktHeadSize+pktLen)
+	pktData := proc.sendBuff.GetWriteData()
 	proc.byteOrder.PutUint32(pktData, uint32(pktLen))
 	copy(pktData[pktHeadSize:], data)
+	proc.sendBuff.AddWritePos(pktHeadSize + pktLen)
 	return pktData
 }
 
