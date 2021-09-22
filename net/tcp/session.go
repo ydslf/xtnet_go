@@ -11,23 +11,30 @@ import (
 	myNet "xtnet/net"
 )
 
-type closeType uint
+type closeType int
 
 const (
-	active  closeType = 0
-	byRead  closeType = 1
-	byWrite closeType = 2
+	active closeType = iota
+	byRead
+	byWrite
 )
 
 const (
 	sendChanSizeDefault int = 1024
 )
 
+const (
+	statusNone int32 = iota
+	statusInit
+	statusRunning
+	statusClosed
+)
+
 type Session struct {
 	netBase   myNet.INetBase
 	conn      net.Conn
 	pktProc   IPktProc
-	closed    int64
+	status    int32
 	wgClose   sync.WaitGroup
 	sendChan  chan []byte
 	closeChan chan int
@@ -45,7 +52,7 @@ func (session *Session) SetAgent(agent myNet.IAgent) {
 }
 
 func (session *Session) Send(data []byte) {
-	if atomic.LoadInt64(&session.closed) == 1 {
+	if atomic.LoadInt32(&session.status) == statusRunning {
 		xtnet_go.GetLogger().LogWarn("tcp.Session.Send: session is closed")
 		return
 	}
@@ -70,7 +77,7 @@ func (session *Session) CloseBlock(waitWrite bool) {
 }
 
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
-	if !atomic.CompareAndSwapInt64(&session.closed, 0, 1) {
+	if !atomic.CompareAndSwapInt32(&session.status, statusRunning, statusClosed) {
 		if ct == active {
 			xtnet_go.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
 		}
@@ -106,7 +113,9 @@ func (session *Session) GetUserData() interface{} {
 }
 
 func (session *Session) start() {
-	session.doStart()
+	if atomic.CompareAndSwapInt32(&session.status, statusNone, statusInit) {
+		session.doStart()
+	}
 }
 
 func (session *Session) doStart() {
@@ -114,6 +123,7 @@ func (session *Session) doStart() {
 	go session.readRoutine()
 	go session.writeRoutine()
 
+	session.status = statusRunning
 	session.netBase.OnSessionStarted(session)
 }
 
@@ -173,7 +183,7 @@ func (c *SessionCreator) CreateSession(netBase myNet.INetBase, conn net.Conn) IS
 	return &Session{
 		netBase:   netBase,
 		conn:      conn,
-		closed:    0,
+		status:    statusNone,
 		sendChan:  make(chan []byte, c.sendChanSize),
 		closeChan: make(chan int, 1),
 	}
