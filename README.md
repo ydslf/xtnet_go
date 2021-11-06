@@ -6,9 +6,10 @@
 #### 软件架构
 Tcp包结构
 |           pktHead         |                      pktBody                     |    包结构
-| pktLen | crc32 | sequence |  msgID |             msgBody                     |    客户端消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
+| pktLen | crc32 | sequence | msgID |              msgBody                     |    客户端消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
 | pktLen | crc32 | sequence | msgDirection | msgID |          msgBody          |    客户端消息(网关不做router逻辑,根据msgDirection判断发送给哪个前端服务器)
 |           pktLen          | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
+|           pktLen          | ToServiceType | ToServiceID | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
 
 websocket包结构
 相对于Tcp包结构，没有pkgLen

@@ -11,8 +11,8 @@ type SessionEncryptClient struct {
 }
 
 func (session *SessionEncryptClient) start() {
-	//TODO 接收key, 开接读程接收, 完了再开写协程
-	if atomic.CompareAndSwapInt32(&session.status, statusNone, statusInit) {
+	//TODO 接收key, 开接读接收, 完了再开写协程
+	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
 		session.receiveKey()
 		session.doStart()
 	}
@@ -37,7 +37,7 @@ func (c *SessionEncryptCCreator) CreateSession(netBase myNet.INetBase, conn net.
 		Session{
 			netBase:   netBase,
 			conn:      conn,
-			status:    statusNone,
+			status:    sessionStatusNone,
 			sendChan:  make(chan []byte, c.sendChanSize),
 			closeChan: make(chan int, 1),
 		},

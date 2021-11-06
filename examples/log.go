@@ -101,7 +101,7 @@ func testColor() {
 }
 
 func testMyLog() {
-	logger := xtlog.NewLogger("output/log", 1024, false)
+	logger := xtlog.NewLogger("output/log", 1024, true, false)
 	logger.SetLogLevel(xtlog.LevelDebug)
 	logger.LogDebug("我是debug")
 	logger.LogWarn("我是warn")

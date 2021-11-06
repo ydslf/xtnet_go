@@ -3,6 +3,7 @@ package net
 import "xtnet/net/packet"
 
 type OnAccept func(ISession)
+type OnConnected func(ISession)
 type OnSessionData func(ISession, []byte)
 type OnSessionPacket func(ISession, *packet.ReadPacket)
 type OnSessionClose func(ISession)
@@ -22,6 +23,13 @@ type ISession interface {
 }
 
 type IAgent interface {
+	HandlerAccept(ISession)
+	HandlerConnected(ISession)
+	HandlerSessionClose(ISession)
+	HandlerSessionData(ISession, []byte)
+}
+
+type IAdapter interface {
 	HandlerAccept(ISession)
 	HandlerConnected(ISession)
 	HandlerSessionClose(ISession)

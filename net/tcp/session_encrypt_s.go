@@ -12,7 +12,7 @@ type SessionEncryptServer struct {
 
 func (session *SessionEncryptServer) start() {
 	//TODO 发送key, 开接写协程写, 完了再开读协程
-	if atomic.CompareAndSwapInt32(&session.status, statusNone, statusInit) {
+	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
 		session.sendKey()
 		session.doStart()
 	}
@@ -37,7 +37,7 @@ func (c *SessionEncryptSCreator) CreateSession(netBase myNet.INetBase, conn net.
 		Session{
 			netBase:   netBase,
 			conn:      conn,
-			status:    statusNone,
+			status:    sessionStatusNone,
 			sendChan:  make(chan []byte, c.sendChanSize),
 			closeChan: make(chan int, 1),
 		},

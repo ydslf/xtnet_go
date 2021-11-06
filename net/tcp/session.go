@@ -24,10 +24,10 @@ const (
 )
 
 const (
-	statusNone int32 = iota
-	statusInit
-	statusRunning
-	statusClosed
+	sessionStatusNone int32 = iota
+	sessionStatusInit
+	sessionStatusRunning
+	sessionStatusClosed
 )
 
 type Session struct {
@@ -52,7 +52,7 @@ func (session *Session) SetAgent(agent myNet.IAgent) {
 }
 
 func (session *Session) Send(data []byte) {
-	if atomic.LoadInt32(&session.status) == statusRunning {
+	if atomic.LoadInt32(&session.status) == sessionStatusRunning {
 		xtnet_go.GetLogger().LogWarn("tcp.Session.Send: session is closed")
 		return
 	}
@@ -77,7 +77,7 @@ func (session *Session) CloseBlock(waitWrite bool) {
 }
 
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
-	if !atomic.CompareAndSwapInt32(&session.status, statusRunning, statusClosed) {
+	if !atomic.CompareAndSwapInt32(&session.status, sessionStatusRunning, sessionStatusClosed) {
 		if ct == active {
 			xtnet_go.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
 		}
@@ -113,7 +113,7 @@ func (session *Session) GetUserData() interface{} {
 }
 
 func (session *Session) start() {
-	if atomic.CompareAndSwapInt32(&session.status, statusNone, statusInit) {
+	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
 		session.doStart()
 	}
 }
@@ -123,7 +123,7 @@ func (session *Session) doStart() {
 	go session.readRoutine()
 	go session.writeRoutine()
 
-	session.status = statusRunning
+	session.status = sessionStatusRunning
 	session.netBase.OnSessionStarted(session)
 }
 
@@ -183,7 +183,7 @@ func (c *SessionCreator) CreateSession(netBase myNet.INetBase, conn net.Conn) IS
 	return &Session{
 		netBase:   netBase,
 		conn:      conn,
-		status:    statusNone,
+		status:    sessionStatusNone,
 		sendChan:  make(chan []byte, c.sendChanSize),
 		closeChan: make(chan int, 1),
 	}

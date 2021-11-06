@@ -179,8 +179,8 @@ func channelTest5() {
 func main() {
 	//channelTest1()
 	//channelTest2()
-	//channelTest3()
-	channelTest4()
+	channelTest3()
+	//channelTest4()
 	//channelTest5()
 	//channelClose()
 }

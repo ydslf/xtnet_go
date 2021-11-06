@@ -10,6 +10,7 @@ type Agent struct {
 	loop            *frame.Loop
 	netRpc          *Rpc
 	onAccept        OnAccept
+	onConnected     OnConnected
 	onSessionPacket OnSessionPacket
 	onSessionClose  OnSessionClose
 }
@@ -43,7 +44,9 @@ func (agent *Agent) HandlerAccept(session ISession) {
 }
 
 func (agent *Agent) HandlerConnected(session ISession) {
-
+	agent.loop.Post(func() {
+		agent.onConnected(session)
+	})
 }
 
 func (agent *Agent) HandlerSessionClose(session ISession) {

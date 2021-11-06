@@ -58,7 +58,7 @@ func NewSystemTimer(loop *frame.Loop) *SystemTimer {
 }
 
 func (timer *SystemTimer) Start(d time.Duration, repeat bool, cb Cb) {
-	//TODO 要先关闭
+	//TODO 要先关闭 repeat用int,等于0表示不循环
 	timer.cb = cb
 	timer.r.when = when(d)
 	timer.r.f = systemTimerFunc

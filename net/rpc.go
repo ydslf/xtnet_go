@@ -13,6 +13,15 @@ const (
 	RpcTypeResponseSync  int8 = 4 //同步RPC回应
 )
 
+/*
+	|                      pktBody                     |
+	|  msgID |             msgBody                     |
+	| msgDirection | msgID |          msgBody          |
+	| rpcType | contextID  | msgType | msgID | msgBody |
+*/
+
+//TODO 应该改为IAgent的子类
+
 type RpcRequest struct {
 	Session   ISession
 	rpcType   int8
@@ -79,7 +88,7 @@ func (rpc *Rpc) SendDirect(session ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) RequestAsyn(session ISession, wpk *packet.WritePacket) {
+func (rpc *Rpc) RequestAsync(session ISession, wpk *packet.WritePacket) {
 
 }
 
