@@ -3,14 +3,16 @@ package main
 import (
 	"fmt"
 	"time"
-	xtnet_go "xtnet"
+	xt "xtnet"
 	"xtnet/encoding"
 	"xtnet/frame"
 	"xtnet/log"
-	xtnet "xtnet/net"
+	xtNet "xtnet/net"
+	"xtnet/net/agent"
 	"xtnet/net/packet"
+	"xtnet/net/rpc"
 	"xtnet/net/tcp"
-	xttimer "xtnet/timer"
+	xtTimer "xtnet/timer"
 )
 
 /*
@@ -37,19 +39,21 @@ func main() {
 	time.After(1)
 	logger = log.NewLogger("output/log", 1024*1024, true, true)
 	logger.SetLogLevel(log.LevelDebug)
-	xtnet_go.SetLogger(logger)
+	xt.SetLogger(logger)
 
 	serviceMain := frame.NewService()
 	loop := serviceMain.GetLoop()
-	netRpc := xtnet.NewRpc(loop)
-	netAgent := xtnet.NewAgent(loop)
+	netRpc := rpc.NewRpc(loop)
+	netAgent := agent.NewAgent(loop)
 	testServer := tcp.NewServer("127.0.0.1:7001", netAgent)
+	var testServer1 xtNet.IServer
+	testServer1 = testServer
 
-	timerManager := xttimer.NewManager(loop)
-	timer := timerManager.NewTimer(xttimer.System)
+	timerManager := xtTimer.NewManager(loop)
+	timer := timerManager.NewTimer(xtTimer.System)
 
 	netAgent.SetNetRpc(netRpc)
-	netAgent.SetOnAccept(func(session xtnet.ISession) {
+	netAgent.SetOnAccept(func(session xtNet.ISession) {
 		fmt.Println("OnAccept: ", session)
 
 		timer.Start(time.Second*2, false, func() {
@@ -66,17 +70,17 @@ func main() {
 			//session.CloseBlock(false)
 		})
 	})
-	netAgent.SetOnSessionPacket(func(session xtnet.ISession, rpk *packet.ReadPacket) {
+	netAgent.SetOnSessionPacket(func(session xtNet.ISession, rpk *packet.ReadPacket) {
 		fmt.Println("OnSessionData: ", rpk)
 	})
-	netAgent.SetOnSessionClose(func(session xtnet.ISession) {
+	netAgent.SetOnSessionClose(func(session xtNet.ISession) {
 		fmt.Println("OnSessionClose")
 	})
 
 	fmt.Println(testServer)
-	testServer.Start()
+	testServer1.Start()
 	loop.Run()
 
-	testServer.Close()
+	testServer1.Close()
 	logger.Close()
 }

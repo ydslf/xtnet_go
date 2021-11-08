@@ -4,8 +4,8 @@ import (
 	"net"
 	"sync"
 	"sync/atomic"
-	xtnet_go "xtnet"
-	myNet "xtnet/net"
+	xt "xtnet"
+	xtNet "xtnet/net"
 )
 
 type Server struct {
@@ -15,10 +15,10 @@ type Server struct {
 	wgClose        sync.WaitGroup
 	sessionCreator ISessionCreator
 	pktProcCreator IPktProcCreator
-	agent          myNet.IAgent
+	agent          xtNet.IAgent
 }
 
-func NewServer(addr string, agent myNet.IAgent) *Server {
+func NewServer(addr string, agent xtNet.IAgent) *Server {
 	return &Server{
 		addr:   addr,
 		closed: 0,
@@ -29,7 +29,7 @@ func NewServer(addr string, agent myNet.IAgent) *Server {
 func (server *Server) Start() bool {
 	listener, err := net.Listen("tcp", server.addr)
 	if err != nil {
-		xtnet_go.GetLogger().LogError("tcp.Server.Start: %v", err)
+		xt.GetLogger().LogError("tcp.Server.Start: %v", err)
 		return false
 	}
 
@@ -53,7 +53,7 @@ func (server *Server) listen() {
 	for atomic.LoadInt64(&server.closed) == 0 {
 		conn, err := server.listener.Accept()
 		if err != nil {
-			xtnet_go.GetLogger().LogError("tcp.Server.listen: %v", err)
+			xt.GetLogger().LogError("tcp.Server.listen: %v", err)
 			continue
 		}
 
@@ -75,7 +75,7 @@ func (server *Server) listen() {
 	}
 }
 
-func (server *Server) OnSessionStarted(session myNet.ISession) {
+func (server *Server) OnSessionStarted(session xtNet.ISession) {
 	if atomic.LoadInt64(&server.closed) == 0 {
 		server.agent.HandlerAccept(session)
 	}

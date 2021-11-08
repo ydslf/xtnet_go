@@ -1,7 +1,8 @@
-package net
+package rpc
 
 import (
 	"xtnet/frame"
+	"xtnet/net"
 	"xtnet/net/packet"
 )
 
@@ -22,16 +23,10 @@ const (
 
 //TODO 应该改为IAgent的子类
 
-type RpcRequest struct {
-	Session   ISession
-	rpcType   int8
-	contextID int32
-}
-
 type Rpc struct {
 	loop         *frame.Loop
-	onRpcDirect  OnRpcDirect
-	onRpcRequest OnRpcRequest
+	onRpcDirect  net.OnRpcDirect
+	onRpcRequest net.OnRpcRequest
 }
 
 func NewRpc(loop *frame.Loop) *Rpc {
@@ -40,15 +35,15 @@ func NewRpc(loop *frame.Loop) *Rpc {
 	}
 }
 
-func (rpc *Rpc) SetOnRpcDirect(onRpcDirect OnRpcDirect) {
+func (rpc *Rpc) SetOnRpcDirect(onRpcDirect net.OnRpcDirect) {
 	rpc.onRpcDirect = onRpcDirect
 }
 
-func (rpc *Rpc) SetOnRpcRequest(nRpcRequest OnRpcRequest) {
+func (rpc *Rpc) SetOnRpcRequest(nRpcRequest net.OnRpcRequest) {
 	rpc.onRpcRequest = nRpcRequest
 }
 
-func (rpc *Rpc) HandleSessionPacket(session ISession, rpk *packet.ReadPacket) {
+func (rpc *Rpc) HandleSessionPacket(session net.ISession, rpk *packet.ReadPacket) {
 	rpcType := rpk.ReadInt8()
 	contextID := rpk.ReadInt32()
 
@@ -71,31 +66,31 @@ func (rpc *Rpc) HandleSessionPacket(session ISession, rpk *packet.ReadPacket) {
 	}
 }
 
-func (rpc *Rpc) handleRpcDirect(session ISession, rpk *packet.ReadPacket) {
+func (rpc *Rpc) handleRpcDirect(session net.ISession, rpk *packet.ReadPacket) {
 	rpc.onRpcDirect(session, rpk)
 }
 
-func (rpc *Rpc) handleRpcRequest(session ISession, rpcType int8, contextID int32, rpk *packet.ReadPacket) {
-	rpcRequest := &RpcRequest{
+func (rpc *Rpc) handleRpcRequest(session net.ISession, rpcType int8, contextID int32, rpk *packet.ReadPacket) {
+	rpcRequest := &net.RpcRequest{
 		Session:   session,
-		rpcType:   rpcType,
-		contextID: contextID,
+		RpcType:   rpcType,
+		ContextID: contextID,
 	}
 	rpc.onRpcRequest(rpcRequest, rpk)
 }
 
-func (rpc *Rpc) SendDirect(session ISession, wpk *packet.WritePacket) {
+func (rpc *Rpc) SendDirect(session net.ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) RequestAsync(session ISession, wpk *packet.WritePacket) {
+func (rpc *Rpc) RequestAsync(session net.ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) RequestSync(session ISession, wpk *packet.WritePacket) {
+func (rpc *Rpc) RequestSync(session net.ISession, wpk *packet.WritePacket) {
 
 }
 
-func (rpc *Rpc) Respond(rpcRequest *RpcRequest, wpk *packet.WritePacket) {
+func (rpc *Rpc) Respond(rpcRequest *net.RpcRequest, wpk *packet.WritePacket) {
 
 }

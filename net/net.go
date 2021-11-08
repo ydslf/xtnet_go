@@ -1,6 +1,8 @@
 package net
 
-import "xtnet/net/packet"
+import (
+	"xtnet/net/packet"
+)
 
 type OnAccept func(ISession)
 type OnConnected func(ISession)
@@ -8,11 +10,23 @@ type OnSessionData func(ISession, []byte)
 type OnSessionPacket func(ISession, *packet.ReadPacket)
 type OnSessionClose func(ISession)
 
+type RpcRequest struct {
+	Session   ISession
+	RpcType   int8
+	ContextID int32
+}
+
 type OnRpcDirect func(ISession, *packet.ReadPacket)
 type OnRpcRequest func(*RpcRequest, *packet.ReadPacket)
 
 type INetBase interface {
 	OnSessionStarted(ISession)
+}
+
+type IServer interface {
+	INetBase
+	Start() bool
+	Close()
 }
 
 type ISession interface {
@@ -23,13 +37,6 @@ type ISession interface {
 }
 
 type IAgent interface {
-	HandlerAccept(ISession)
-	HandlerConnected(ISession)
-	HandlerSessionClose(ISession)
-	HandlerSessionData(ISession, []byte)
-}
-
-type IAdapter interface {
 	HandlerAccept(ISession)
 	HandlerConnected(ISession)
 	HandlerSessionClose(ISession)

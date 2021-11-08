@@ -3,7 +3,7 @@ package tcp
 import (
 	"net"
 	"sync/atomic"
-	myNet "xtnet/net"
+	xtNet "xtnet/net"
 )
 
 type SessionEncryptServer struct {
@@ -32,7 +32,7 @@ func NewSessionEncryptSCreator(sendChanSize int) ISessionCreator {
 	}
 }
 
-func (c *SessionEncryptSCreator) CreateSession(netBase myNet.INetBase, conn net.Conn) ISession {
+func (c *SessionEncryptSCreator) CreateSession(netBase xtNet.INetBase, conn net.Conn) ISession {
 	return &SessionEncryptServer{
 		Session{
 			netBase:   netBase,

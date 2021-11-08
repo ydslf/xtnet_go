@@ -2,17 +2,17 @@ package tcp
 
 import (
 	"net"
-	myNet "xtnet/net"
+	xtNet "xtnet/net"
 )
 
 type ISession interface {
-	myNet.ISession
+	xtNet.ISession
 	setPktProc(IPktProc)
 	start()
 }
 
 type ISessionCreator interface {
-	CreateSession(myNet.INetBase, net.Conn) ISession
+	CreateSession(xtNet.INetBase, net.Conn) ISession
 }
 
 type IPktProc interface {

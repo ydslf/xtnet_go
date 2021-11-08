@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	xtnet_go "xtnet"
-	myNet "xtnet/net"
+	xt "xtnet"
+	xtNet "xtnet/net"
 )
 
 type closeType int
@@ -31,7 +31,7 @@ const (
 )
 
 type Session struct {
-	netBase   myNet.INetBase
+	netBase   xtNet.INetBase
 	conn      net.Conn
 	pktProc   IPktProc
 	status    int32
@@ -39,7 +39,7 @@ type Session struct {
 	sendChan  chan []byte
 	closeChan chan int
 	userData  interface{}
-	agent     myNet.IAgent
+	agent     xtNet.IAgent
 }
 
 //TODO closed 改为状态
@@ -47,18 +47,18 @@ func (session *Session) setPktProc(pktProc IPktProc) {
 	session.pktProc = pktProc
 }
 
-func (session *Session) SetAgent(agent myNet.IAgent) {
+func (session *Session) SetAgent(agent xtNet.IAgent) {
 	session.agent = agent
 }
 
 func (session *Session) Send(data []byte) {
 	if atomic.LoadInt32(&session.status) == sessionStatusRunning {
-		xtnet_go.GetLogger().LogWarn("tcp.Session.Send: session is closed")
+		xt.GetLogger().LogWarn("tcp.Session.Send: session is closed")
 		return
 	}
 
 	if len(session.sendChan) == cap(session.sendChan) {
-		xtnet_go.GetLogger().LogWarn("tcp.Session.Send: sendChan is full")
+		xt.GetLogger().LogWarn("tcp.Session.Send: sendChan is full")
 	}
 
 	session.sendChan <- data
@@ -79,7 +79,7 @@ func (session *Session) CloseBlock(waitWrite bool) {
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 	if !atomic.CompareAndSwapInt32(&session.status, sessionStatusRunning, sessionStatusClosed) {
 		if ct == active {
-			xtnet_go.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
+			xt.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
 		}
 		return false
 	}
@@ -134,7 +134,7 @@ func (session *Session) readRoutine() {
 		data, err := session.pktProc.UnPack(session)
 		if err != nil {
 			if err != io.EOF && !os.IsTimeout(err) {
-				xtnet_go.GetLogger().LogError("session.readRoutine: err=%v", err)
+				xt.GetLogger().LogError("session.readRoutine: err=%v", err)
 			}
 			session.doClose(byRead, false)
 			return
@@ -157,7 +157,7 @@ FOR:
 			pktData := session.pktProc.Pack(data)
 			_, err := session.conn.Write(pktData)
 			if err != nil {
-				xtnet_go.GetLogger().LogError("session.writeRoutine: err=%v", err)
+				xt.GetLogger().LogError("session.writeRoutine: err=%v", err)
 				session.doClose(byWrite, false)
 				return
 			}
@@ -179,7 +179,7 @@ func NewSessionCreator(sendChanSize int) ISessionCreator {
 	}
 }
 
-func (c *SessionCreator) CreateSession(netBase myNet.INetBase, conn net.Conn) ISession {
+func (c *SessionCreator) CreateSession(netBase xtNet.INetBase, conn net.Conn) ISession {
 	return &Session{
 		netBase:   netBase,
 		conn:      conn,

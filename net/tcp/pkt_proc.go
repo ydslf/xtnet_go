@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	xtnet_go "xtnet"
+	xt "xtnet"
 	"xtnet/util"
 )
 
@@ -41,11 +41,11 @@ func (proc *PktProc) UnPack(session *Session) ([]byte, error) {
 
 	pktLen := int(proc.byteOrder.Uint32(proc.headBuff))
 	if pktLen > proc.maxPkgSize {
-		xtnet_go.GetLogger().LogError("net.tcp.Unpack: pktLen > process.maxPkgSize, pktLen=%d, maxPkgSize=%d", pktLen, proc.maxPkgSize)
+		xt.GetLogger().LogError("net.tcp.Unpack: pktLen > process.maxPkgSize, pktLen=%d, maxPkgSize=%d", pktLen, proc.maxPkgSize)
 		return nil, NTErrPktTooLong
 	}
 	if pktLen == 0 {
-		xtnet_go.GetLogger().LogError("net.tcp.Unpack: pktLen=0")
+		xt.GetLogger().LogError("net.tcp.Unpack: pktLen=0")
 		return nil, NTErrPktZero
 	}
 

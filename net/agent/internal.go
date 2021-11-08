@@ -2,31 +2,31 @@ package agent
 
 import (
 	"encoding/binary"
-	myNet "xtnet/net"
+	xtNet "xtnet/net"
 )
 
 type Internal struct {
 	byteOrder binary.ByteOrder
 }
 
-func NewInternal() myNet.IAdapter {
+func NewInternal() xtNet.IAgent {
 	return &Internal{
 		binary.BigEndian,
 	}
 }
 
-func (agent *Internal) HandlerAccept(session myNet.ISession) {
+func (agent *Internal) HandlerAccept(session xtNet.ISession) {
 
 }
 
-func (agent *Internal) HandlerConnected(session myNet.ISession) {
+func (agent *Internal) HandlerConnected(session xtNet.ISession) {
 
 }
 
-func (agent *Internal) HandlerSessionClose(session myNet.ISession) {
+func (agent *Internal) HandlerSessionClose(session xtNet.ISession) {
 
 }
 
-func (agent *Internal) HandlerSessionData(session myNet.ISession, data []byte) {
+func (agent *Internal) HandlerSessionData(session xtNet.ISession, data []byte) {
 
 }
