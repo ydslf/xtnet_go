@@ -46,7 +46,7 @@ func main() {
 	netRpc := rpc.NewRpc(loop)
 	netAgent := agent.NewAgent(loop)
 	testServer := tcp.NewServer("127.0.0.1:7001", netAgent)
-	var testServer1 xtNet.IServer
+	var testServer1 xtNet.INetBase
 	testServer1 = testServer
 
 	timerManager := xtTimer.NewManager(loop)

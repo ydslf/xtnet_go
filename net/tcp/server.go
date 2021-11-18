@@ -10,7 +10,7 @@ import (
 
 type Server struct {
 	addr           string
-	closed         int64
+	closed         int32
 	listener       net.Listener
 	wgClose        sync.WaitGroup
 	sessionCreator ISessionCreator
@@ -40,7 +40,7 @@ func (server *Server) Start() bool {
 }
 
 func (server *Server) Close() {
-	if atomic.CompareAndSwapInt64(&server.closed, 0, 1) {
+	if atomic.CompareAndSwapInt32(&server.closed, 0, 1) {
 		server.listener.Close()
 		server.wgClose.Wait()
 		//TODO 使用context关闭所有session
@@ -50,7 +50,7 @@ func (server *Server) Close() {
 func (server *Server) listen() {
 	defer server.wgClose.Done()
 
-	for atomic.LoadInt64(&server.closed) == 0 {
+	for atomic.LoadInt32(&server.closed) == 0 {
 		conn, err := server.listener.Accept()
 		if err != nil {
 			xt.GetLogger().LogError("tcp.Server.listen: %v", err)
@@ -76,7 +76,7 @@ func (server *Server) listen() {
 }
 
 func (server *Server) OnSessionStarted(session xtNet.ISession) {
-	if atomic.LoadInt64(&server.closed) == 0 {
+	if atomic.LoadInt32(&server.closed) == 0 {
 		server.agent.HandlerAccept(session)
 	}
 }

@@ -173,14 +173,46 @@ func channelTest5() {
 		}
 	}()
 
+	ch <- "b"
+	//close(ch)
+	time.Sleep(time.Hour * 1)
+}
+
+//获取消息的协程再写消息
+func channelTest6() {
+	ch := make(chan string, 3)
+	//ch <- "a"
+	//ch <- "b"
+	//ch <- "c"
+
+	select {
+	case ch <- "a":
+		fmt.Println("send ok")
+	}
+
+	go func() {
+		for {
+			select {
+			case value, ok := <-ch:
+				fmt.Println(value, ok)
+				if value == "a" {
+					ch <- value + "1"
+				}
+			}
+		}
+	}()
+
+	ch <- "b"
+	//close(ch)
 	time.Sleep(time.Hour * 1)
 }
 
 func main() {
 	//channelTest1()
 	//channelTest2()
-	channelTest3()
+	//channelTest3()
 	//channelTest4()
 	//channelTest5()
+	channelTest6()
 	//channelClose()
 }

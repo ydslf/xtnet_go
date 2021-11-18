@@ -21,10 +21,6 @@ type OnRpcRequest func(*RpcRequest, *packet.ReadPacket)
 
 type INetBase interface {
 	OnSessionStarted(ISession)
-}
-
-type IServer interface {
-	INetBase
 	Start() bool
 	Close()
 }

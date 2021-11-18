@@ -27,22 +27,24 @@ const (
 	sessionStatusNone int32 = iota
 	sessionStatusInit
 	sessionStatusRunning
+	sessionStatusClosing
 	sessionStatusClosed
 )
 
 type Session struct {
-	netBase   xtNet.INetBase
-	conn      net.Conn
-	pktProc   IPktProc
-	status    int32
-	wgClose   sync.WaitGroup
-	sendChan  chan []byte
-	closeChan chan int
-	userData  interface{}
-	agent     xtNet.IAgent
+	netBase     xtNet.INetBase
+	conn        net.Conn
+	pktProc     IPktProc
+	status      int32
+	wgClose     sync.WaitGroup
+	writeClosed bool
+	readClosed  bool
+	sendChan    chan []byte
+	closeChan   chan int
+	userData    interface{}
+	agent       xtNet.IAgent
 }
 
-//TODO closed 改为状态
 func (session *Session) setPktProc(pktProc IPktProc) {
 	session.pktProc = pktProc
 }
@@ -52,8 +54,8 @@ func (session *Session) SetAgent(agent xtNet.IAgent) {
 }
 
 func (session *Session) Send(data []byte) {
-	if atomic.LoadInt32(&session.status) == sessionStatusRunning {
-		xt.GetLogger().LogWarn("tcp.Session.Send: session is closed")
+	if atomic.LoadInt32(&session.status) != sessionStatusRunning {
+		xt.GetLogger().LogWarn("tcp.Session.Send: session is not running")
 		return
 	}
 
@@ -77,9 +79,9 @@ func (session *Session) CloseBlock(waitWrite bool) {
 }
 
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
-	if !atomic.CompareAndSwapInt32(&session.status, sessionStatusRunning, sessionStatusClosed) {
+	if !atomic.CompareAndSwapInt32(&session.status, sessionStatusRunning, sessionStatusClosing) {
 		if ct == active {
-			xt.GetLogger().LogWarn("tcp.Session.Close: session has been closed")
+			xt.GetLogger().LogWarn("tcp.Session.Close: session is not running")
 		}
 		return false
 	}
@@ -95,7 +97,7 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 		if ct == byRead {
 			session.closeChan <- 1
 		} else {
-			session.conn.Close()
+			session.conn.SetReadDeadline(time.Now())
 		}
 
 		session.agent.HandlerSessionClose(session)
@@ -128,7 +130,14 @@ func (session *Session) doStart() {
 }
 
 func (session *Session) readRoutine() {
-	defer session.wgClose.Done()
+	defer func() {
+		session.readClosed = true
+		if session.writeClosed {
+			atomic.StoreInt32(&session.status, sessionStatusClosed)
+			session.conn.Close()
+		}
+		session.wgClose.Done()
+	}()
 
 	for {
 		data, err := session.pktProc.UnPack(session)
@@ -145,13 +154,20 @@ func (session *Session) readRoutine() {
 }
 
 func (session *Session) writeRoutine() {
-	defer session.wgClose.Done()
+	defer func() {
+		session.writeClosed = true
+		if session.readClosed {
+			atomic.StoreInt32(&session.status, sessionStatusClosed)
+			session.conn.Close()
+		}
+		session.wgClose.Done()
+	}()
 
 FOR:
 	for {
 		select {
-		case data := <-session.sendChan:
-			if data == nil {
+		case data, ok := <-session.sendChan:
+			if ok == false {
 				break FOR
 			}
 			pktData := session.pktProc.Pack(data)
@@ -166,7 +182,6 @@ FOR:
 			break FOR
 		}
 	}
-	session.conn.Close()
 }
 
 type SessionCreator struct {
