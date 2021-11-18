@@ -28,21 +28,21 @@ const (
 	sessionStatusInit
 	sessionStatusRunning
 	sessionStatusClosing
+	sessionStatusReadClosed
+	sessionStatusWriteClosed
 	sessionStatusClosed
 )
 
 type Session struct {
-	netBase     xtNet.INetBase
-	conn        net.Conn
-	pktProc     IPktProc
-	status      int32
-	wgClose     sync.WaitGroup
-	writeClosed bool
-	readClosed  bool
-	sendChan    chan []byte
-	closeChan   chan int
-	userData    interface{}
-	agent       xtNet.IAgent
+	netBase   xtNet.INetBase
+	conn      net.Conn
+	pktProc   IPktProc
+	status    int32
+	wgClose   sync.WaitGroup
+	sendChan  chan []byte
+	closeChan chan int
+	userData  interface{}
+	agent     xtNet.IAgent
 }
 
 func (session *Session) setPktProc(pktProc IPktProc) {
@@ -131,8 +131,7 @@ func (session *Session) doStart() {
 
 func (session *Session) readRoutine() {
 	defer func() {
-		session.readClosed = true
-		if session.writeClosed {
+		if !atomic.CompareAndSwapInt32(&session.status, sessionStatusClosing, sessionStatusReadClosed) {
 			atomic.StoreInt32(&session.status, sessionStatusClosed)
 			session.conn.Close()
 		}
@@ -155,8 +154,7 @@ func (session *Session) readRoutine() {
 
 func (session *Session) writeRoutine() {
 	defer func() {
-		session.writeClosed = true
-		if session.readClosed {
+		if !atomic.CompareAndSwapInt32(&session.status, sessionStatusClosing, sessionStatusWriteClosed) {
 			atomic.StoreInt32(&session.status, sessionStatusClosed)
 			session.conn.Close()
 		}
