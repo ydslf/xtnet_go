@@ -11,7 +11,7 @@ type SessionEncryptServer struct {
 }
 
 func (session *SessionEncryptServer) start() {
-	//TODO 发送key, 开接写协程写, 完了再开读协程
+	//TODO 发送key, 开写协程写, 完了再开读协程
 	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
 		session.sendKey()
 		session.doStart()

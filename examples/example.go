@@ -8,7 +8,8 @@ import (
 	"xtnet/frame"
 	"xtnet/log"
 	xtNet "xtnet/net"
-	"xtnet/net/agent"
+	"xtnet/net/agent/session"
+	"xtnet/net/eventhandler"
 	"xtnet/net/packet"
 	"xtnet/net/rpc"
 	"xtnet/net/tcp"
@@ -42,18 +43,16 @@ func main() {
 	xt.SetLogger(logger)
 
 	serviceMain := frame.NewService()
-	loop := serviceMain.GetLoop()
-	netRpc := rpc.NewRpc(loop)
-	netAgent := agent.NewAgent(loop)
+	netRpc := rpc.NewRpc(serviceMain)
+	netAgent := session.NewAgent(serviceMain)
+	eventHandler := eventhandler.NewSessionEventHandler()
 	testServer := tcp.NewServer("127.0.0.1:7001", netAgent)
-	var testServer1 xtNet.INetBase
-	testServer1 = testServer
 
-	timerManager := xtTimer.NewManager(loop)
+	timerManager := xtTimer.NewManager(serviceMain)
 	timer := timerManager.NewTimer(xtTimer.System)
 
 	netAgent.SetNetRpc(netRpc)
-	netAgent.SetOnAccept(func(session xtNet.ISession) {
+	eventHandler.OnAccept = func(session xtNet.ISession) {
 		fmt.Println("OnAccept: ", session)
 
 		timer.Start(time.Second*2, false, func() {
@@ -69,18 +68,18 @@ func main() {
 			session.Send(msg5)
 			//session.CloseBlock(false)
 		})
-	})
-	netAgent.SetOnSessionPacket(func(session xtNet.ISession, rpk *packet.ReadPacket) {
+	}
+	eventHandler.OnSessionPacket = func(session xtNet.ISession, rpk *packet.ReadPacket) {
 		fmt.Println("OnSessionData: ", rpk)
-	})
-	netAgent.SetOnSessionClose(func(session xtNet.ISession) {
+	}
+	eventHandler.OnSessionClose = func(session xtNet.ISession) {
 		fmt.Println("OnSessionClose")
-	})
+	}
 
 	fmt.Println(testServer)
-	testServer1.Start()
-	loop.Run()
+	testServer.Start()
+	serviceMain.Run()
 
-	testServer1.Close()
+	testServer.Close()
 	logger.Close()
 }

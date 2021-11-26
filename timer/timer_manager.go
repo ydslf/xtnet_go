@@ -20,9 +20,9 @@ type Manager struct {
 	loop *frame.Loop
 }
 
-func NewManager(loop *frame.Loop) *Manager {
+func NewManager(service *frame.Service) *Manager {
 	return &Manager{
-		loop: loop,
+		loop: service.GetLoop(),
 	}
 }
 

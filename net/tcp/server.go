@@ -15,10 +15,10 @@ type Server struct {
 	wgClose        sync.WaitGroup
 	sessionCreator ISessionCreator
 	pktProcCreator IPktProcCreator
-	agent          xtNet.IAgent
+	agent          xtNet.ISessionAgent
 }
 
-func NewServer(addr string, agent xtNet.IAgent) *Server {
+func NewServer(addr string, agent xtNet.ISessionAgent) *Server {
 	return &Server{
 		addr:   addr,
 		closed: 0,

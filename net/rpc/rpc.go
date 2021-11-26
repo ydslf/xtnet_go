@@ -29,9 +29,9 @@ type Rpc struct {
 	onRpcRequest net.OnRpcRequest
 }
 
-func NewRpc(loop *frame.Loop) *Rpc {
+func NewRpc(service *frame.Service) *Rpc {
 	return &Rpc{
-		loop: loop,
+		loop: service.GetLoop(),
 	}
 }
 

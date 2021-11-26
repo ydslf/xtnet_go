@@ -1,4 +1,4 @@
-package agent
+package session
 
 import (
 	"encoding/binary"
@@ -10,7 +10,7 @@ type External struct {
 	byteOrder binary.ByteOrder
 }
 
-func NewExternal(byteOrder binary.ByteOrder) xtNet.IAgent {
+func NewExternal(byteOrder binary.ByteOrder) xtNet.ISessionAgent {
 	return &External{
 		byteOrder: byteOrder,
 	}

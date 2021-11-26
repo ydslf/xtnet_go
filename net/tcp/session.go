@@ -28,8 +28,6 @@ const (
 	sessionStatusInit
 	sessionStatusRunning
 	sessionStatusClosing
-	sessionStatusReadClosed
-	sessionStatusWriteClosed
 	sessionStatusClosed
 )
 
@@ -42,14 +40,14 @@ type Session struct {
 	sendChan  chan []byte
 	closeChan chan int
 	userData  interface{}
-	agent     xtNet.IAgent
+	agent     xtNet.ISessionAgent
 }
 
 func (session *Session) setPktProc(pktProc IPktProc) {
 	session.pktProc = pktProc
 }
 
-func (session *Session) SetAgent(agent xtNet.IAgent) {
+func (session *Session) SetAgent(agent xtNet.ISessionAgent) {
 	session.agent = agent
 }
 
@@ -69,13 +67,6 @@ func (session *Session) Send(data []byte) {
 //关闭session
 func (session *Session) Close(waitWrite bool) {
 	session.doClose(active, waitWrite)
-}
-
-//关闭session，阻塞等待关闭完成
-func (session *Session) CloseBlock(waitWrite bool) {
-	if session.doClose(active, waitWrite) {
-		session.wgClose.Wait()
-	}
 }
 
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
@@ -99,8 +90,6 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 		} else {
 			session.conn.SetReadDeadline(time.Now())
 		}
-
-		session.agent.HandlerSessionClose(session)
 	}
 
 	return true
@@ -122,21 +111,24 @@ func (session *Session) start() {
 
 func (session *Session) doStart() {
 	session.wgClose.Add(2)
+	go session.endRoutine()
 	go session.readRoutine()
 	go session.writeRoutine()
 
-	session.status = sessionStatusRunning
+	atomic.StoreInt32(&session.status, sessionStatusRunning)
 	session.netBase.OnSessionStarted(session)
 }
 
+func (session *Session) endRoutine() {
+	session.wgClose.Wait()
+
+	atomic.StoreInt32(&session.status, sessionStatusClosed)
+	session.conn.Close()
+	session.agent.HandlerSessionClose(session)
+}
+
 func (session *Session) readRoutine() {
-	defer func() {
-		if !atomic.CompareAndSwapInt32(&session.status, sessionStatusClosing, sessionStatusReadClosed) {
-			atomic.StoreInt32(&session.status, sessionStatusClosed)
-			session.conn.Close()
-		}
-		session.wgClose.Done()
-	}()
+	defer session.wgClose.Done()
 
 	for {
 		data, err := session.pktProc.UnPack(session)
@@ -153,13 +145,7 @@ func (session *Session) readRoutine() {
 }
 
 func (session *Session) writeRoutine() {
-	defer func() {
-		if !atomic.CompareAndSwapInt32(&session.status, sessionStatusClosing, sessionStatusWriteClosed) {
-			atomic.StoreInt32(&session.status, sessionStatusClosed)
-			session.conn.Close()
-		}
-		session.wgClose.Done()
-	}()
+	defer session.wgClose.Done()
 
 FOR:
 	for {

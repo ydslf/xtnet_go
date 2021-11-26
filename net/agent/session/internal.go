@@ -1,4 +1,4 @@
-package agent
+package session
 
 import (
 	"encoding/binary"
@@ -9,7 +9,7 @@ type Internal struct {
 	byteOrder binary.ByteOrder
 }
 
-func NewInternal() xtNet.IAgent {
+func NewInternal() xtNet.ISessionAgent {
 	return &Internal{
 		binary.BigEndian,
 	}
