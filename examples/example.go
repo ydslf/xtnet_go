@@ -3,17 +3,17 @@ package main
 import (
 	"fmt"
 	"time"
-	xt "xtnet"
+	xtnet "xtnet"
 	"xtnet/encoding"
 	"xtnet/frame"
 	"xtnet/log"
-	xtNet "xtnet/net"
-	"xtnet/net/agent/session"
+	xtnetNet "xtnet/net"
+	"xtnet/net/agent/server"
 	"xtnet/net/eventhandler"
 	"xtnet/net/packet"
 	"xtnet/net/rpc"
 	"xtnet/net/tcp"
-	xtTimer "xtnet/timer"
+	xtnetTimer "xtnet/timer"
 )
 
 /*
@@ -40,19 +40,19 @@ func main() {
 	time.After(1)
 	logger = log.NewLogger("output/log", 1024*1024, true, true)
 	logger.SetLogLevel(log.LevelDebug)
-	xt.SetLogger(logger)
+	xtnet.SetLogger(logger)
 
 	serviceMain := frame.NewService()
 	netRpc := rpc.NewRpc(serviceMain)
-	netAgent := session.NewAgent(serviceMain)
-	eventHandler := eventhandler.NewSessionEventHandler()
-	testServer := tcp.NewServer("127.0.0.1:7001", netAgent)
+	serverAgent := server.NewNormal(serviceMain)
+	eventHandler := eventhandler.NewServerEventHandler()
+	testServer := tcp.NewServer("127.0.0.1:7001", serverAgent)
 
-	timerManager := xtTimer.NewManager(serviceMain)
-	timer := timerManager.NewTimer(xtTimer.System)
+	timerManager := xtnetTimer.NewManager(serviceMain)
+	timer := timerManager.NewTimer(xtnetTimer.System)
 
-	netAgent.SetNetRpc(netRpc)
-	eventHandler.OnAccept = func(session xtNet.ISession) {
+	serverAgent.SetNetRpc(netRpc)
+	eventHandler.OnAccept = func(server xtnetNet.IServer, session xtnetNet.ISession) {
 		fmt.Println("OnAccept: ", session)
 
 		timer.Start(time.Second*2, false, func() {
@@ -69,10 +69,10 @@ func main() {
 			//session.CloseBlock(false)
 		})
 	}
-	eventHandler.OnSessionPacket = func(session xtNet.ISession, rpk *packet.ReadPacket) {
+	eventHandler.OnSessionPacket = func(server xtnetNet.IServer, session xtnetNet.ISession, rpk *packet.ReadPacket) {
 		fmt.Println("OnSessionData: ", rpk)
 	}
-	eventHandler.OnSessionClose = func(session xtNet.ISession) {
+	eventHandler.OnSessionClose = func(server xtnetNet.IServer, session xtnetNet.ISession) {
 		fmt.Println("OnSessionClose")
 	}
 

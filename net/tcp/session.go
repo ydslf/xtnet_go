@@ -7,14 +7,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	xt "xtnet"
-	xtNet "xtnet/net"
+	xtnet "xtnet"
+	xtnetNet "xtnet/net"
 )
 
 type closeType int
 
 const (
-	active closeType = iota
+	none closeType = iota
+	active
 	byRead
 	byWrite
 )
@@ -32,33 +33,42 @@ const (
 )
 
 type Session struct {
-	netBase   xtNet.INetBase
-	conn      net.Conn
-	pktProc   IPktProc
-	status    int32
-	wgClose   sync.WaitGroup
-	sendChan  chan []byte
-	closeChan chan int
-	userData  interface{}
-	agent     xtNet.ISessionAgent
+	conn           net.Conn
+	pktProc        IPktProc
+	status         int32
+	wgClose        sync.WaitGroup
+	sendChan       chan []byte
+	closeChan      chan int
+	closeType      closeType
+	onSessionStart xtnetNet.OnSessionStart
+	onSessionData  xtnetNet.OnSessionData
+	onSessionClose xtnetNet.OnSessionClose
 }
 
 func (session *Session) setPktProc(pktProc IPktProc) {
 	session.pktProc = pktProc
 }
 
-func (session *Session) SetAgent(agent xtNet.ISessionAgent) {
-	session.agent = agent
+func (session *Session) SetSessionStartCb(cb xtnetNet.OnSessionStart) {
+	session.onSessionStart = cb
+}
+
+func (session *Session) SetSessionDataCb(cb xtnetNet.OnSessionData) {
+	session.onSessionData = cb
+}
+
+func (session *Session) SetSessionCloseCb(cb xtnetNet.OnSessionClose) {
+	session.onSessionClose = cb
 }
 
 func (session *Session) Send(data []byte) {
 	if atomic.LoadInt32(&session.status) != sessionStatusRunning {
-		xt.GetLogger().LogWarn("tcp.Session.Send: session is not running")
+		xtnet.GetLogger().LogWarn("tcp.Session.Send: session is not running")
 		return
 	}
 
 	if len(session.sendChan) == cap(session.sendChan) {
-		xt.GetLogger().LogWarn("tcp.Session.Send: sendChan is full")
+		xtnet.GetLogger().LogWarn("tcp.Session.Send: sendChan is full")
 	}
 
 	session.sendChan <- data
@@ -70,61 +80,52 @@ func (session *Session) Close(waitWrite bool) {
 }
 
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
-	if !atomic.CompareAndSwapInt32(&session.status, sessionStatusRunning, sessionStatusClosing) {
+	switch s := atomic.LoadInt32(&session.status); s {
+	case sessionStatusInit, sessionStatusRunning:
+		atomic.StoreInt32(&session.status, sessionStatusClosing)
+		session.closeType = ct
 		if ct == active {
-			xt.GetLogger().LogWarn("tcp.Session.Close: session is not running")
+			session.conn.SetReadDeadline(time.Now())
+			if waitWrite {
+				close(session.sendChan)
+			} else {
+				session.closeChan <- 1
+			}
+		} else {
+			if ct == byRead {
+				session.closeChan <- 1
+			} else {
+				session.conn.SetReadDeadline(time.Now())
+			}
+		}
+		return true
+	default:
+		if ct == active {
+			xtnet.GetLogger().LogWarn("tcp.Session.Close: session status error, status=%d", s)
 		}
 		return false
 	}
-
-	if ct == active {
-		session.conn.SetReadDeadline(time.Now())
-		if waitWrite {
-			close(session.sendChan)
-		} else {
-			session.closeChan <- 1
-		}
-	} else {
-		if ct == byRead {
-			session.closeChan <- 1
-		} else {
-			session.conn.SetReadDeadline(time.Now())
-		}
-	}
-
-	return true
-}
-
-func (session *Session) SetUserData(userData interface{}) {
-	session.userData = userData
-}
-
-func (session *Session) GetUserData() interface{} {
-	return session.userData
 }
 
 func (session *Session) start() {
 	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
-		session.doStart()
+		session.wgClose.Add(2)
+		go session.subRoutine()
+		go session.readRoutine()
+		go session.writeRoutine()
 	}
 }
 
-func (session *Session) doStart() {
-	session.wgClose.Add(2)
-	go session.endRoutine()
-	go session.readRoutine()
-	go session.writeRoutine()
-
+func (session *Session) subRoutine() {
 	atomic.StoreInt32(&session.status, sessionStatusRunning)
-	session.netBase.OnSessionStarted(session)
-}
+	session.onSessionStart(session)
 
-func (session *Session) endRoutine() {
 	session.wgClose.Wait()
-
 	atomic.StoreInt32(&session.status, sessionStatusClosed)
 	session.conn.Close()
-	session.agent.HandlerSessionClose(session)
+	if session.closeType == byRead || session.closeType == byWrite {
+		session.onSessionClose(session)
+	}
 }
 
 func (session *Session) readRoutine() {
@@ -134,13 +135,13 @@ func (session *Session) readRoutine() {
 		data, err := session.pktProc.UnPack(session)
 		if err != nil {
 			if err != io.EOF && !os.IsTimeout(err) {
-				xt.GetLogger().LogError("session.readRoutine: err=%v", err)
+				xtnet.GetLogger().LogError("session.readRoutine: err=%v", err)
 			}
 			session.doClose(byRead, false)
 			return
 		}
 
-		session.agent.HandlerSessionData(session, data)
+		session.onSessionData(session, data)
 	}
 }
 
@@ -157,7 +158,7 @@ FOR:
 			pktData := session.pktProc.Pack(data)
 			_, err := session.conn.Write(pktData)
 			if err != nil {
-				xt.GetLogger().LogError("session.writeRoutine: err=%v", err)
+				xtnet.GetLogger().LogError("session.writeRoutine: err=%v", err)
 				session.doClose(byWrite, false)
 				return
 			}
@@ -178,12 +179,12 @@ func NewSessionCreator(sendChanSize int) ISessionCreator {
 	}
 }
 
-func (c *SessionCreator) CreateSession(netBase xtNet.INetBase, conn net.Conn) ISession {
+func (c *SessionCreator) CreateSession(conn net.Conn) ISession {
 	return &Session{
-		netBase:   netBase,
 		conn:      conn,
 		status:    sessionStatusNone,
 		sendChan:  make(chan []byte, c.sendChanSize),
 		closeChan: make(chan int, 1),
+		closeType: none,
 	}
 }

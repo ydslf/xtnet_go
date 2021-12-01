@@ -3,7 +3,6 @@ package tcp
 import (
 	"net"
 	"sync/atomic"
-	xtNet "xtnet/net"
 )
 
 type SessionEncryptClient struct {
@@ -14,7 +13,6 @@ func (session *SessionEncryptClient) start() {
 	//TODO 接收key, 开接读接收, 完了再开写协程
 	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
 		session.receiveKey()
-		session.doStart()
 	}
 }
 
@@ -32,10 +30,9 @@ func NewSessionEncryptCreator(sendChanSize int) ISessionCreator {
 	}
 }
 
-func (c *SessionEncryptCCreator) CreateSession(netBase xtNet.INetBase, conn net.Conn) ISession {
+func (c *SessionEncryptCCreator) CreateSession(conn net.Conn) ISession {
 	return &SessionEncryptClient{
 		Session{
-			netBase:   netBase,
 			conn:      conn,
 			status:    sessionStatusNone,
 			sendChan:  make(chan []byte, c.sendChanSize),

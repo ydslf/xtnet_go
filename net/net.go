@@ -10,12 +10,12 @@ type RpcRequest struct {
 	ContextID int32
 }
 
+type OnSessionStart func(ISession)
+type OnSessionData func(ISession, []byte)
+type OnSessionClose func(ISession)
+
 type OnRpcDirect func(ISession, *packet.ReadPacket)
 type OnRpcRequest func(*RpcRequest, *packet.ReadPacket)
-
-type INetBase interface {
-	OnSessionStarted(ISession)
-}
 
 type IServer interface {
 	Start() bool
@@ -24,25 +24,27 @@ type IServer interface {
 
 type IClient interface {
 	Connect() bool
-	ConnectSync() bool
-	Close()
-}
-
-type ISession interface {
-	SetAgent(ISessionAgent)
-	Send([]byte)
+	ConnectSync(ms int) error
 	Close(waitWrite bool)
 }
 
-type ISessionAgent interface {
-	HandlerAccept(ISession)
-	HandlerSessionClose(ISession)
-	HandlerSessionData(ISession, []byte)
+type ISession interface {
+	Send([]byte)
+	Close(waitWrite bool)
+	SetSessionStartCb(OnSessionStart)
+	SetSessionDataCb(OnSessionData)
+	SetSessionCloseCb(OnSessionClose)
+}
+
+type IServerAgent interface {
+	HandlerAccept(IServer, ISession)
+	HandlerSessionData(IServer, ISession, []byte)
+	HandlerSessionClose(IServer, ISession)
 }
 
 type IClientAgent interface {
-	HandlerConnected(IClient)
-	HandlerDisconnected(IClient)
-	HandlerClientData(ISession, []byte)
-	HandlerConnectBreak(ISession)
+	HandlerConnect(IClient)
+	HandlerDisconnect(IClient)
+	HandlerClientData(IClient, []byte)
+	HandlerConnectBreak(IClient)
 }

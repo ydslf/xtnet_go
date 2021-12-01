@@ -9,12 +9,11 @@ import (
 
 func TestSystemTimer(t *testing.T) {
 	serviceMain := frame.NewService()
-	loop := serviceMain.GetLoop()
-	manager := NewManager(loop)
+	manager := NewManager(serviceMain)
 	timer := manager.NewTimer(System)
 	timer.Start(time.Second*1, false, func() {
 		fmt.Println("startedEnd", time.Now())
 		fmt.Println(timer)
 	})
-	loop.RunOnce()
+	serviceMain.GetLoop().RunOnce()
 }

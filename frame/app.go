@@ -1,9 +1,9 @@
 package frame
 
 import (
-	xtNet "xtnet/net"
+	xtnetNet "xtnet/net"
 )
 
 type App struct {
-	netServers map[int]xtNet.IServer
+	netServers map[int]xtnetNet.IServer
 }

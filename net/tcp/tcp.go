@@ -2,17 +2,18 @@ package tcp
 
 import (
 	"net"
-	xtNet "xtnet/net"
+	xtnetNet "xtnet/net"
 )
 
 type ISession interface {
-	xtNet.ISession
+	xtnetNet.ISession
 	setPktProc(IPktProc)
 	start()
+	doClose(closeType closeType, waitWrite bool) bool
 }
 
 type ISessionCreator interface {
-	CreateSession(xtNet.INetBase, net.Conn) ISession
+	CreateSession(net.Conn) ISession
 }
 
 type IPktProc interface {
