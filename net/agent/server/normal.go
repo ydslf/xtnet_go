@@ -11,14 +11,18 @@ import (
 
 type Normal struct {
 	loop         *frame.Loop
-	netRpc       *rpc.Rpc
 	eventHandler *eventhandler.Server
+	netRpc       *rpc.Rpc
 }
 
 func NewNormal(service *frame.Service) *Normal {
 	return &Normal{
 		loop: service.GetLoop(),
 	}
+}
+
+func (agent *Normal) SetEventHandler(eventHandler *eventhandler.Server) {
+	agent.eventHandler = eventHandler
 }
 
 func (agent *Normal) SetNetRpc(netRpc *rpc.Rpc) {

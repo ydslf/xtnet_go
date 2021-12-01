@@ -122,9 +122,7 @@ func (client *Client) ConnectSync(ms int) error {
 	case <-chanSign:
 		return nil
 	case <-time.After(time.Millisecond * time.Duration(ms)):
-		atomic.StoreInt32(&client.status, clientStatusClosed)
-		client.session.Close(false)
-		client.session = nil
+		client.Close(false)
 		return ClientErrTimeout
 	}
 }

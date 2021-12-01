@@ -16,24 +16,6 @@ import (
 	xtnetTimer "xtnet/timer"
 )
 
-/*
-	type struct MsgHello{
-		content: string
-	}
-
-	agent.setNetRpc(netRpc)
-	agent.SetCallback()
-	agent.registMsgHandler(msgID, func(session, msg *MsgHello));
-
-	testServer.SetCallback(func(session *tcp.Session) {
-		agent.OnConnect()
-	}, func(session *tcp.Session, data []byte) {
-		agent.OnData()
-	}, func(session *tcp.Session) {
-		agent.OnClose()
-	})
-*/
-
 var logger *log.Logger
 
 func main() {
@@ -51,6 +33,7 @@ func main() {
 	timerManager := xtnetTimer.NewManager(serviceMain)
 	timer := timerManager.NewTimer(xtnetTimer.System)
 
+	serverAgent.SetEventHandler(eventHandler)
 	serverAgent.SetNetRpc(netRpc)
 	eventHandler.OnAccept = func(server xtnetNet.IServer, session xtnetNet.ISession) {
 		fmt.Println("OnAccept: ", session)
