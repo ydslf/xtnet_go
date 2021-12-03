@@ -12,7 +12,7 @@ import (
 type Internal struct {
 	loop         *frame.Loop
 	eventHandler *eventhandler.Server
-	netRpc       *rpc.Rpc
+	netRpc       rpc.IRpc
 }
 
 func NewInternal(service *frame.Service) net.IServerAgent {
@@ -25,7 +25,7 @@ func (agent *Internal) SetEventHandler(eventHandler *eventhandler.Server) {
 	agent.eventHandler = eventHandler
 }
 
-func (agent *Internal) SetNetRpc(netRpc *rpc.Rpc) {
+func (agent *Internal) SetNetRpc(netRpc rpc.IRpc) {
 	agent.netRpc = netRpc
 }
 
