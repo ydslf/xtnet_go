@@ -14,10 +14,10 @@ import (
 type closeType int
 
 const (
-	none closeType = iota
-	active
-	byRead
-	byWrite
+	ctNone closeType = iota
+	ctActive
+	ctByRead
+	ctByWrite
 )
 
 const (
@@ -76,7 +76,7 @@ func (session *Session) Send(data []byte) {
 
 //关闭session
 func (session *Session) Close(waitWrite bool) {
-	session.doClose(active, waitWrite)
+	session.doClose(ctActive, waitWrite)
 }
 
 func (session *Session) doClose(ct closeType, waitWrite bool) bool {
@@ -84,7 +84,8 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 	case sessionStatusInit, sessionStatusRunning:
 		atomic.StoreInt32(&session.status, sessionStatusClosing)
 		session.closeType = ct
-		if ct == active {
+
+		if ct == ctActive {
 			session.conn.SetReadDeadline(time.Now())
 			if waitWrite {
 				close(session.sendChan)
@@ -92,7 +93,7 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 				session.closeChan <- 1
 			}
 		} else {
-			if ct == byRead {
+			if ct == ctByRead {
 				session.closeChan <- 1
 			} else {
 				session.conn.SetReadDeadline(time.Now())
@@ -100,7 +101,7 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 		}
 		return true
 	default:
-		if ct == active {
+		if ct == ctActive {
 			xtnet.GetLogger().LogWarn("tcp.Session.Close: session status error, status=%d", s)
 		}
 		return false
@@ -123,7 +124,7 @@ func (session *Session) subRoutine() {
 	session.wgClose.Wait()
 	atomic.StoreInt32(&session.status, sessionStatusClosed)
 	session.conn.Close()
-	if session.closeType == byRead || session.closeType == byWrite {
+	if session.closeType == ctByRead || session.closeType == ctByWrite {
 		session.onSessionClose(session)
 	}
 }
@@ -137,7 +138,7 @@ func (session *Session) readRoutine() {
 			if err != io.EOF && !os.IsTimeout(err) {
 				xtnet.GetLogger().LogError("session.readRoutine: err=%v", err)
 			}
-			session.doClose(byRead, false)
+			session.doClose(ctByRead, false)
 			return
 		}
 
@@ -159,7 +160,7 @@ FOR:
 			_, err := session.conn.Write(pktData)
 			if err != nil {
 				xtnet.GetLogger().LogError("session.writeRoutine: err=%v", err)
-				session.doClose(byWrite, false)
+				session.doClose(ctByWrite, false)
 				return
 			}
 
@@ -185,6 +186,6 @@ func (c *SessionCreator) CreateSession(conn net.Conn) ISession {
 		status:    sessionStatusNone,
 		sendChan:  make(chan []byte, c.sendChanSize),
 		closeChan: make(chan int, 1),
-		closeType: none,
+		closeType: ctNone,
 	}
 }

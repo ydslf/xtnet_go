@@ -6,8 +6,9 @@
 #### 软件架构
 Tcp包结构
 |           pktHead         |                      pktBody                     |    包结构
-| pktLen | crc32 | sequence | msgID |              msgBody                     |    客户端消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
-| pktLen | crc32 | sequence | msgDirection | msgID |          msgBody          |    客户端消息(网关不做router逻辑,根据msgDirection判断发送给哪个前端服务器)
+| pktLen | crc32 | sequence | msgID |              msgBody                     |    客户端->服务器消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
+| pktLen | crc32 | sequence | msgDirection | msgID |          msgBody          |    客户端->服务器消息(网关不做router逻辑,根据msgDirection判断发送给哪个前端服务器)
+| pktLen | crc32 | sequence | msgID |              msgBody                     |    服务器->客户端消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
 |           pktLen          | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
 |           pktLen          | ToServiceType | ToServiceID | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
 
@@ -26,11 +27,8 @@ login    lobby  lobby     game  game            frontend server
         client  client                          client
 
 
-1. 通用序列化工具
-2. netAgent 注册消息函数，能自动反序列化初函数的参数
-3. rpc完善
-4. 网络库完善
-5. 加一种计时器，并且加上crontab
+待完成
+1. 加一种计时器，并且加上crontab
 
 #### 安装教程
 

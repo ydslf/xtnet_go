@@ -127,6 +127,12 @@ func (client *Client) ConnectSync(ms int) error {
 	}
 }
 
+func (client *Client) Send(data []byte) {
+	if atomic.LoadInt32(&client.status) == clientStatusConnected {
+		client.session.Send(data)
+	}
+}
+
 func (client *Client) Close(waitWrite bool) {
 	if atomic.LoadInt32(&client.status) == clientStatusConnecting || atomic.LoadInt32(&client.status) == clientStatusConnected {
 		atomic.StoreInt32(&client.status, clientStatusClosed)

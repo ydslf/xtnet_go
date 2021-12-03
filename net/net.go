@@ -1,21 +1,8 @@
 package net
 
-import (
-	"xtnet/net/packet"
-)
-
-type RpcRequest struct {
-	Session   ISession
-	RpcType   int8
-	ContextID int32
-}
-
 type OnSessionStart func(ISession)
 type OnSessionData func(ISession, []byte)
 type OnSessionClose func(ISession)
-
-type OnRpcDirect func(ISession, *packet.ReadPacket)
-type OnRpcRequest func(*RpcRequest, *packet.ReadPacket)
 
 type IServer interface {
 	Start() bool
@@ -25,6 +12,7 @@ type IServer interface {
 type IClient interface {
 	Connect() bool
 	ConnectSync(ms int) error
+	Send([]byte)
 	Close(waitWrite bool)
 }
 
