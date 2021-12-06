@@ -139,6 +139,7 @@ func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expi
 		}
 		return rpk, nil
 	case <-time.After(RequestTimeout):
+		rpc.contexts.Delete(contextID)
 		return nil, errors.New("RequestSync timeout")
 	}
 }
