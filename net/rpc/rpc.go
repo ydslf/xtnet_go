@@ -23,15 +23,10 @@ type OnRpcDirect func(session net.ISession, rpk *packet.ReadPacket)
 type OnRpcRequest func(session net.ISession, contextID int32, rpk *packet.ReadPacket)
 type RequestCallback func(rpk *packet.ReadPacket)
 
-type Context struct {
-	contextID int32
-	cb        RequestCallback
-}
-
 type IRpc interface {
 	HandleSessionPacket(session net.ISession, rpk *packet.ReadPacket)
 	SendDirect(session net.ISession, wpk *packet.WritePacket)
 	RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback)
-	RequestSync(session net.ISession, wpk *packet.WritePacket) (rpk *packet.ReadPacket, err error)
+	RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (rpk *packet.ReadPacket, err error)
 	Respond(session net.ISession, contextID int32, wpk *packet.WritePacket)
 }

@@ -2,21 +2,42 @@ package rpc
 
 import (
 	"errors"
+	"sync"
+	"time"
+	xtnet "xtnet"
 	"xtnet/frame"
 	"xtnet/net"
 	"xtnet/net/packet"
 )
+
+type RequestType int8
+
+const (
+	rqtAsync RequestType = iota
+	rqtSync
+)
+
+const RequestTimeout = 5000
+
+type ContextSync struct {
+	contextID int32
+	t         RequestType
+	cb        RequestCallback
+}
 
 type Sync struct {
 	loop         *frame.Loop
 	onRpcDirect  OnRpcDirect
 	onRpcRequest OnRpcRequest
 	contextID    int32
+	contexts     sync.Map
+	datas        chan *packet.ReadPacket
 }
 
 func NewSync(service *frame.Service) IRpc {
 	return &Sync{
-		loop: service.GetLoop(),
+		loop:  service.GetLoop(),
+		datas: make(chan *packet.ReadPacket, 1),
 	}
 }
 
@@ -56,7 +77,19 @@ func (rpc *Sync) handleRpcRequest(session net.ISession, contextID int32, rpk *pa
 }
 
 func (rpc *Sync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
-
+	if c, ok := rpc.contexts.Load(contextID); ok {
+		rpc.contexts.Delete(contextID)
+		context := c.(*ContextSync)
+		if context.t == rqtAsync {
+			rpc.loop.Post(func() {
+				context.cb(rpk)
+			})
+		} else {
+			rpc.datas <- rpk
+		}
+	} else {
+		xtnet.GetLogger().LogWarn("rpc.handlerResponse: no context, contextID=%d", contextID)
+	}
 }
 
 func (rpc *Sync) GenContextID() int32 {
@@ -74,11 +107,40 @@ func (rpc *Sync) SendDirect(session net.ISession, wpk *packet.WritePacket) {
 }
 
 func (rpc *Sync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback) {
+	contextID := rpc.GenContextID()
+	context := &ContextSync{
+		contextID: contextID,
+		t:         rqtAsync,
+		cb:        cb,
+	}
+	rpc.contexts.Store(contextID, context)
 
+	wpk.WriteReserveInt32(contextID)
+	wpk.WriteReserveInt8(rtRequest)
+	session.Send(wpk.GetRealData())
 }
 
-func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket) (rpk *packet.ReadPacket, err error) {
-	return nil, errors.New("this rpc do not support RequestSync")
+func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (*packet.ReadPacket, error) {
+	contextID := rpc.GenContextID()
+	context := &ContextSync{
+		contextID: contextID,
+		t:         rqtSync,
+	}
+	rpc.contexts.Store(contextID, context)
+
+	wpk.WriteReserveInt32(contextID)
+	wpk.WriteReserveInt8(rtRequest)
+	session.Send(wpk.GetRealData())
+
+	select {
+	case rpk, ok := <-rpc.datas:
+		if !ok {
+			return nil, errors.New("RequestSync rpc closed")
+		}
+		return rpk, nil
+	case <-time.After(RequestTimeout):
+		return nil, errors.New("RequestSync timeout")
+	}
 }
 
 func (rpc *Sync) Respond(session net.ISession, contextID int32, wpk *packet.WritePacket) {

@@ -79,7 +79,7 @@ func (client *Client) Connect() bool {
 	return true
 }
 
-func (client *Client) ConnectSync(ms int) error {
+func (client *Client) ConnectSync(TimeOutMS int) error {
 	if !atomic.CompareAndSwapInt32(&client.status, clientStatusClosed, clientStatusConnecting) {
 		xtnet.GetLogger().LogWarn("tcp.Client.Connect: client is not closed")
 		return ClientErrWrongStatus
@@ -121,7 +121,7 @@ func (client *Client) ConnectSync(ms int) error {
 	select {
 	case <-chanSign:
 		return nil
-	case <-time.After(time.Millisecond * time.Duration(ms)):
+	case <-time.After(time.Millisecond * time.Duration(TimeOutMS)):
 		client.Close(false)
 		return ClientErrTimeout
 	}

@@ -8,18 +8,23 @@ import (
 	"xtnet/net/packet"
 )
 
+type ContextNoSync struct {
+	contextID int32
+	cb        RequestCallback
+}
+
 type NoSync struct {
 	loop         *frame.Loop
 	onRpcDirect  OnRpcDirect
 	onRpcRequest OnRpcRequest
 	contextID    int32
-	contexts     map[int32]*Context
+	contexts     map[int32]*ContextNoSync
 }
 
 func NewNoSync(service *frame.Service) IRpc {
 	return &NoSync{
 		loop:     service.GetLoop(),
-		contexts: make(map[int32]*Context),
+		contexts: make(map[int32]*ContextNoSync),
 	}
 }
 
@@ -60,8 +65,7 @@ func (rpc *NoSync) handleRpcRequest(session net.ISession, contextID int32, rpk *
 
 func (rpc *NoSync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
 	rpc.loop.Post(func() {
-		context, ok := rpc.contexts[contextID]
-		if ok {
+		if context, ok := rpc.contexts[contextID]; ok {
 			delete(rpc.contexts, contextID)
 			context.cb(rpk)
 		} else {
@@ -86,7 +90,7 @@ func (rpc *NoSync) SendDirect(session net.ISession, wpk *packet.WritePacket) {
 
 func (rpc *NoSync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback) {
 	contextID := rpc.GenContextID()
-	context := &Context{
+	context := &ContextNoSync{
 		contextID: contextID,
 		cb:        cb,
 	}
@@ -97,7 +101,7 @@ func (rpc *NoSync) RequestAsync(session net.ISession, wpk *packet.WritePacket, c
 	session.Send(wpk.GetRealData())
 }
 
-func (rpc *NoSync) RequestSync(session net.ISession, wpk *packet.WritePacket) (rpk *packet.ReadPacket, err error) {
+func (rpc *NoSync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (rpk *packet.ReadPacket, err error) {
 	return nil, errors.New("this rpc do not support RequestSync")
 }
 
