@@ -17,7 +17,7 @@ const (
 	rtResponse             //异步RPC回应
 )
 
-const maxContextID int32 = 0x8FFFFFFF
+const maxContextID int32 = 0x7FFFFFFF
 
 type OnRpcDirect func(session net.ISession, rpk *packet.ReadPacket)
 type OnRpcRequest func(session net.ISession, contextID int32, rpk *packet.ReadPacket)
