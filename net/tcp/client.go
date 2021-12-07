@@ -37,6 +37,10 @@ func NewClient(addr string, agent xtnetNet.IClientAgent) *Client {
 	}
 }
 
+func (client *Client) GetSession() xtnetNet.ISession {
+	return client.session
+}
+
 func (client *Client) Connect() bool {
 	if !atomic.CompareAndSwapInt32(&client.status, clientStatusClosed, clientStatusConnecting) {
 		xtnet.GetLogger().LogWarn("tcp.Client.Connect: client is not closed")

@@ -10,6 +10,7 @@ type IServer interface {
 }
 
 type IClient interface {
+	GetSession() ISession
 	Connect() bool
 	ConnectSync(ms int) error
 	Send([]byte)
