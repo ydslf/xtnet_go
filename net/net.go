@@ -26,14 +26,14 @@ type ISession interface {
 }
 
 type IServerAgent interface {
-	HandlerAccept(IServer, ISession)
-	HandlerSessionData(IServer, ISession, []byte)
-	HandlerSessionClose(IServer, ISession)
+	HandleAccept(IServer, ISession)
+	HandleSessionData(IServer, ISession, []byte)
+	HandleSessionClose(IServer, ISession)
 }
 
 type IClientAgent interface {
-	HandlerConnect(IClient)
-	HandlerDisconnect(IClient)
-	HandlerClientData(IClient, []byte)
-	HandlerConnectBreak(IClient)
+	HandleConnect(IClient)
+	HandleDisconnect(IClient)
+	HandleClientData(IClient, []byte)
+	HandleConnectBreak(IClient)
 }

@@ -54,13 +54,13 @@ type loggerMsg struct {
 	time    time.Time
 }
 
-func NewLogger(dir string, fileSizeLimit int, screen bool, sync bool) *Logger {
+func NewLogger(dir string, fileSizeLimit int, screen bool, async bool) *Logger {
 	logger := new(Logger)
 	logger.dir = dir
 	logger.fileSizeLimit = fileSizeLimit
 	logger.screen = screen
 	logger.logLevel = LevelNone
-	logger.async = sync
+	logger.async = async
 	logger.msgChan = make(chan *loggerMsg, MsgChanSize)
 
 	if logger.fileSizeLimit < FileSizeMin {

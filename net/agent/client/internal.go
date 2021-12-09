@@ -29,24 +29,24 @@ func (agent *Internal) SetNetRpc(netRpc rpc.IRpc) {
 	agent.netRpc = netRpc
 }
 
-func (agent *Internal) HandlerConnect(client net.IClient) {
+func (agent *Internal) HandleConnect(client net.IClient) {
 	agent.loop.Post(func() {
 		agent.eventHandler.OnConnectSuccess(client)
 	})
 }
 
-func (agent *Internal) HandlerDisconnect(client net.IClient) {
+func (agent *Internal) HandleDisconnect(client net.IClient) {
 	agent.loop.Post(func() {
 		agent.eventHandler.OnConnectFailed(client)
 	})
 }
 
-func (agent *Internal) HandlerClientData(client net.IClient, data []byte) {
+func (agent *Internal) HandleClientData(client net.IClient, data []byte) {
 	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, len(data))
 	agent.netRpc.HandleSessionPacket(client.GetSession(), rpk)
 }
 
-func (agent *Internal) HandlerConnectBreak(client net.IClient) {
+func (agent *Internal) HandleConnectBreak(client net.IClient) {
 	agent.loop.Post(func() {
 		agent.eventHandler.OnConnectionBroken(client)
 	})

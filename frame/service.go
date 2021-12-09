@@ -4,9 +4,9 @@ type Service struct {
 	loop *Loop
 }
 
-func NewService() *Service {
+func NewService(loopSize int) *Service {
 	return &Service{
-		loop: NewLoop(),
+		loop: NewLoop(loopSize),
 	}
 }
 

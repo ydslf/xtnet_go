@@ -23,20 +23,20 @@ func (agent *Normal) SetEventHandler(eventHandler *eventhandler.Server) {
 	agent.eventHandler = eventHandler
 }
 
-func (agent *Normal) HandlerAccept(server net.IServer, session net.ISession) {
+func (agent *Normal) HandleAccept(server net.IServer, session net.ISession) {
 	agent.loop.Post(func() {
 		agent.eventHandler.OnAccept(server, session)
 	})
 }
 
-func (agent *Normal) HandlerSessionData(server net.IServer, session net.ISession, data []byte) {
+func (agent *Normal) HandleSessionData(server net.IServer, session net.ISession, data []byte) {
 	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, len(data))
 	agent.loop.Post(func() {
 		agent.eventHandler.OnSessionPacket(server, session, rpk)
 	})
 }
 
-func (agent *Normal) HandlerSessionClose(server net.IServer, session net.ISession) {
+func (agent *Normal) HandleSessionClose(server net.IServer, session net.ISession) {
 	agent.loop.Post(func() {
 		agent.eventHandler.OnSessionClose(server, session)
 	})
