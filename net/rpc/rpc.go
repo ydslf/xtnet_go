@@ -24,6 +24,8 @@ type OnRpcRequest func(session net.ISession, contextID int32, rpk *packet.ReadPa
 type RequestCallback func(rpk *packet.ReadPacket)
 
 type IRpc interface {
+	SetOnRpcDirect(onRpcDirect OnRpcDirect)
+	SetOnRpcRequest(nRpcRequest OnRpcRequest)
 	HandleSessionPacket(session net.ISession, rpk *packet.ReadPacket)
 	SendDirect(session net.ISession, wpk *packet.WritePacket)
 	RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback)

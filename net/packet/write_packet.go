@@ -124,6 +124,15 @@ func (wpk *WritePacket) WriteData(data []byte) {
 	}
 }
 
+func (wpk *WritePacket) WriteString(data string) {
+	size := len(data)
+	if wpk.MakeSureEnough(size + 2) {
+		wpk.WriteInt16(int16(size))
+		copy(wpk.data[wpk.pos:], data)
+		wpk.pos += size
+	}
+}
+
 func (wpk *WritePacket) WriteReserveData(data []byte) {
 	size := len(data)
 	if wpk.MakeSureReserveEnough(size) {

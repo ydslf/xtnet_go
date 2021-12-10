@@ -21,9 +21,9 @@ type NoSync struct {
 	contexts     map[int32]*ContextNoSync
 }
 
-func NewNoSync(service *frame.Service) IRpc {
+func NewNoSync(loop *frame.Loop) IRpc {
 	return &NoSync{
-		loop:     service.GetLoop(),
+		loop:     loop,
 		contexts: make(map[int32]*ContextNoSync),
 	}
 }

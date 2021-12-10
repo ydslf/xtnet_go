@@ -10,6 +10,14 @@ import (
 var loop = 100000
 
 func main() {
+	ss := "abcd"
+	ssslice := []byte(ss)
+	ssslice[0] = '1'
+	fmt.Println(ss, ssslice)
+	ss1 := string(ssslice)
+	ssslice[1] = '1'
+	fmt.Println(ss1, ssslice)
+
 	var s string
 	s1 := "hello"
 	s2 := "world"

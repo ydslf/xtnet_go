@@ -51,7 +51,7 @@ func (client *Client) Connect() bool {
 		conn, err := net.Dial("tcp", client.addr)
 		if err != nil {
 			atomic.StoreInt32(&client.status, clientStatusClosed)
-			client.agent.HandlerDisconnect(client)
+			client.agent.HandleDisconnect(client)
 		}
 
 		if client.sessionCreator == nil {
@@ -66,15 +66,15 @@ func (client *Client) Connect() bool {
 		session.setPktProc(pktProc)
 		session.SetSessionStartCb(func(session xtnetNet.ISession) {
 			atomic.StoreInt32(&client.status, clientStatusConnected)
-			client.agent.HandlerConnect(client)
+			client.agent.HandleConnect(client)
 		})
 		session.SetSessionDataCb(func(session xtnetNet.ISession, data []byte) {
-			client.agent.HandlerClientData(client, data)
+			client.agent.HandleClientData(client, data)
 		})
 		session.SetSessionCloseCb(func(session xtnetNet.ISession) {
 			atomic.StoreInt32(&client.status, clientStatusClosed)
 			client.session = nil
-			client.agent.HandlerConnectBreak(client)
+			client.agent.HandleConnectBreak(client)
 		})
 		session.start()
 		client.session = session
@@ -112,12 +112,12 @@ func (client *Client) ConnectSync(TimeOutMS int) error {
 		chanSign <- 1
 	})
 	session.SetSessionDataCb(func(session xtnetNet.ISession, data []byte) {
-		client.agent.HandlerClientData(client, data)
+		client.agent.HandleClientData(client, data)
 	})
 	session.SetSessionCloseCb(func(session xtnetNet.ISession) {
 		atomic.StoreInt32(&client.status, clientStatusClosed)
 		client.session = nil
-		client.agent.HandlerConnectBreak(client)
+		client.agent.HandleConnectBreak(client)
 	})
 	session.start()
 	client.session = session

@@ -43,6 +43,7 @@ type Session struct {
 	onSessionStart xtnetNet.OnSessionStart
 	onSessionData  xtnetNet.OnSessionData
 	onSessionClose xtnetNet.OnSessionClose
+	userData       interface{}
 }
 
 func (session *Session) setPktProc(pktProc IPktProc) {
@@ -59,6 +60,14 @@ func (session *Session) SetSessionDataCb(cb xtnetNet.OnSessionData) {
 
 func (session *Session) SetSessionCloseCb(cb xtnetNet.OnSessionClose) {
 	session.onSessionClose = cb
+}
+
+func (session *Session) SetUserData(userData interface{}) {
+	session.userData = userData
+}
+
+func (session *Session) GetUserData() interface{} {
+	return session.userData
 }
 
 func (session *Session) Send(data []byte) {

@@ -13,9 +13,9 @@ type Normal struct {
 	eventHandler *eventhandler.Client
 }
 
-func NewNormal(service *frame.Service) *Normal {
+func NewNormal(loop *frame.Loop) *Normal {
 	return &Normal{
-		loop: service.GetLoop(),
+		loop: loop,
 	}
 }
 

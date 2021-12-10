@@ -18,10 +18,10 @@ type Loop struct {
 	functions chan LoopFun
 	closeChan chan int
 	status    int32
-	warnLen   bool
+	fullWarn  bool
 }
 
-func NewLoop(size int, warnLen bool) *Loop {
+func NewLoop(size int, fullWarn bool) *Loop {
 	if size < LoopSizeMin {
 		size = LoopSizeMin
 	}
@@ -29,7 +29,7 @@ func NewLoop(size int, warnLen bool) *Loop {
 		functions: make(chan LoopFun, size),
 		closeChan: make(chan int, 1),
 		status:    loopStatusInit,
-		warnLen:   warnLen,
+		fullWarn:  fullWarn,
 	}
 }
 
@@ -38,7 +38,7 @@ func (loop *Loop) Post(f LoopFun) {
 		xtnet.GetLogger().LogError("Loop.Post: loop status=%d", loop.status)
 		return
 	}
-	if loop.warnLen {
+	if loop.fullWarn {
 		if len(loop.functions) > cap(loop.functions) {
 			xtnet.GetLogger().LogWarn("Loop.Post: chan cap=%d", cap(loop.functions))
 		}

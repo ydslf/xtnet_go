@@ -23,6 +23,8 @@ type ISession interface {
 	SetSessionStartCb(OnSessionStart)
 	SetSessionDataCb(OnSessionData)
 	SetSessionCloseCb(OnSessionClose)
+	SetUserData(userData interface{})
+	GetUserData() interface{}
 }
 
 type IServerAgent interface {

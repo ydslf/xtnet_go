@@ -88,13 +88,13 @@ func (server *Server) listen() {
 		pktProc := server.pktProcCreator.CreatePktProc()
 		session.setPktProc(pktProc)
 		session.SetSessionStartCb(func(session xtnetNet.ISession) {
-			server.agent.HandlerAccept(server, session)
+			server.agent.HandleAccept(server, session)
 		})
 		session.SetSessionDataCb(func(session xtnetNet.ISession, data []byte) {
-			server.agent.HandlerSessionData(server, session, data)
+			server.agent.HandleSessionData(server, session, data)
 		})
 		session.SetSessionCloseCb(func(session xtnetNet.ISession) {
-			server.agent.HandlerSessionClose(server, session)
+			server.agent.HandleSessionClose(server, session)
 		})
 		session.start()
 	}

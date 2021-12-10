@@ -54,6 +54,16 @@ func (rpk *ReadPacket) ReadData(size int) []byte {
 	return ret
 }
 
+func (rpk *ReadPacket) ReadString() string {
+	size := rpk.ReadInt16()
+	if size > 0 {
+		if rpk.CheckSize(int(size)) {
+			return string(rpk.data[rpk.pos : rpk.pos+int(size)])
+		}
+	}
+	return ""
+}
+
 func (rpk *ReadPacket) PeakUint8() uint8 {
 	var ret uint8 = 0
 	if rpk.CheckSize(int(unsafe.Sizeof(ret))) {

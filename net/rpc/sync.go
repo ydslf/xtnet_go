@@ -34,9 +34,9 @@ type Sync struct {
 	datas        chan *packet.ReadPacket
 }
 
-func NewSync(service *frame.Service) IRpc {
+func NewSync(loop *frame.Loop) IRpc {
 	return &Sync{
-		loop:  service.GetLoop(),
+		loop:  loop,
 		datas: make(chan *packet.ReadPacket, 1),
 	}
 }

@@ -15,9 +15,9 @@ type Internal struct {
 	netRpc       rpc.IRpc
 }
 
-func NewInternal(service *frame.Service) *Internal {
+func NewInternal(loop *frame.Loop) *Internal {
 	return &Internal{
-		loop: service.GetLoop(),
+		loop: loop,
 	}
 }
 
