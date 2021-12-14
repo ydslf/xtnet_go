@@ -70,6 +70,10 @@ func (session *Session) GetUserData() interface{} {
 	return session.userData
 }
 
+func (session *Session) GetRemoteAddr() string {
+	return session.conn.RemoteAddr().String()
+}
+
 func (session *Session) Send(data []byte) {
 	if atomic.LoadInt32(&session.status) != sessionStatusRunning {
 		xtnet.GetLogger().LogWarn("tcp.Session.Send: session is not running")

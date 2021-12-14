@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"time"
 	xtnet "xtnet"
@@ -22,8 +23,8 @@ func main() {
 	logger = log.NewLogger("output/log", 1024*1024, true, true)
 	logger.SetLogLevel(log.LevelDebug)
 	xtnet.SetLogger(logger)
-	serviceMain := frame.NewService()
-	timerManager := xtnetTimer.NewManager(serviceMain)
+	loop := frame.NewLoop(10000, true)
+	timerManager := xtnetTimer.NewManager(loop)
 
 	timer1 := timerManager.NewTimer(xtnetTimer.System)
 	eventHandler := eventhandler.NewServerEventHandler()
@@ -49,12 +50,12 @@ func main() {
 		fmt.Println("OnSessionClose")
 		timer1.Stop()
 	}
-	serverAgent := server.NewNormal(serviceMain)
+	serverAgent := server.NewNormal(loop, binary.BigEndian)
 	serverAgent.SetEventHandler(eventHandler)
 	testServer := tcp.NewServer("127.0.0.1:7001", serverAgent)
 	testServer.Start()
 
-	serviceMain.Run()
+	loop.Run()
 	testServer.Close()
 	logger.Close()
 }

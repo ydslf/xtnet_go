@@ -35,7 +35,7 @@ type IServerAgent interface {
 
 type IClientAgent interface {
 	HandleConnect(IClient)
-	HandleDisconnect(IClient)
+	HandleConnectFailed(IClient)
 	HandleClientData(IClient, []byte)
 	HandleConnectBreak(IClient)
 }

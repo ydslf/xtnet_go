@@ -51,7 +51,8 @@ func (client *Client) Connect() bool {
 		conn, err := net.Dial("tcp", client.addr)
 		if err != nil {
 			atomic.StoreInt32(&client.status, clientStatusClosed)
-			client.agent.HandleDisconnect(client)
+			client.agent.HandleConnectFailed(client)
+			return
 		}
 
 		if client.sessionCreator == nil {

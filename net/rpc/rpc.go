@@ -6,9 +6,9 @@ import (
 )
 
 /*
-	|                      pktBody                     |
-	|  msgID |             msgBody                     |
-	| rpcType | contextID  |       msgBody             |
+	|                      pktBody                        |
+	|  msgID |             msgBody                        |
+	| rpcType | contextID  | msgType | OP |   msgBody     |
 */
 
 const (

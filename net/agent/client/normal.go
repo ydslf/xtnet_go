@@ -10,12 +10,14 @@ import (
 
 type Normal struct {
 	loop         *frame.Loop
+	byteOrder    binary.ByteOrder
 	eventHandler *eventhandler.Client
 }
 
-func NewNormal(loop *frame.Loop) *Normal {
+func NewNormal(loop *frame.Loop, byteOrder binary.ByteOrder) *Normal {
 	return &Normal{
-		loop: loop,
+		loop:      loop,
+		byteOrder: byteOrder,
 	}
 }
 
@@ -29,14 +31,14 @@ func (agent *Normal) HandleConnect(client net.IClient) {
 	})
 }
 
-func (agent *Normal) HandleDisconnect(client net.IClient) {
+func (agent *Normal) HandleConnectFailed(client net.IClient) {
 	agent.loop.Post(func() {
 		agent.eventHandler.OnConnectFailed(client)
 	})
 }
 
 func (agent *Normal) HandleClientData(client net.IClient, data []byte) {
-	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, len(data))
+	rpk := packet.NewReadPacket(data, agent.byteOrder, 0, len(data))
 	agent.loop.Post(func() {
 		agent.eventHandler.OnClientPacket(client, rpk)
 	})

@@ -11,13 +11,15 @@ import (
 
 type Internal struct {
 	loop         *frame.Loop
+	byteOrder    binary.ByteOrder
 	eventHandler *eventhandler.Server
 	netRpc       rpc.IRpc
 }
 
-func NewInternal(loop *frame.Loop) *Internal {
+func NewInternal(loop *frame.Loop, byteOrder binary.ByteOrder) *Internal {
 	return &Internal{
-		loop: loop,
+		loop:      loop,
+		byteOrder: byteOrder,
 	}
 }
 
@@ -36,7 +38,7 @@ func (agent *Internal) HandleAccept(server net.IServer, session net.ISession) {
 }
 
 func (agent *Internal) HandleSessionData(server net.IServer, session net.ISession, data []byte) {
-	rpk := packet.NewReadPacket(data, binary.BigEndian, 0, len(data))
+	rpk := packet.NewReadPacket(data, agent.byteOrder, 0, len(data))
 	agent.netRpc.HandleSessionPacket(session, rpk)
 }
 
