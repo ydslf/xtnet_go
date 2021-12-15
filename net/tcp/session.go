@@ -149,7 +149,7 @@ func (session *Session) readRoutine() {
 		data, err := session.pktProc.UnPack(session)
 		if err != nil {
 			if err != io.EOF && !os.IsTimeout(err) {
-				xtnet.GetLogger().LogError("session.readRoutine: err=%v", err)
+				//xtnet.GetLogger().LogError("session.readRoutine: err=%v", err)
 			}
 			session.doClose(ctByRead, false)
 			return
