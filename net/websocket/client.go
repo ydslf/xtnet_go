@@ -1,8 +1,9 @@
-package tcp
+package websocket
 
 import (
 	"errors"
-	"net"
+	"github.com/gorilla/websocket"
+	"net/url"
 	"sync/atomic"
 	"time"
 	xtnet "xtnet"
@@ -21,12 +22,10 @@ var (
 )
 
 type Client struct {
-	addr           string
-	status         int32
-	session        xtnetNet.ISession
-	sessionCreator ISessionCreator
-	pktProcCreator IPktProcCreator
-	agent          xtnetNet.IClientAgent
+	addr    string
+	status  int32
+	session xtnetNet.ISession
+	agent   xtnetNet.IClientAgent
 }
 
 func NewClient(addr string, agent xtnetNet.IClientAgent) *Client {
@@ -43,28 +42,24 @@ func (client *Client) GetSession() xtnetNet.ISession {
 
 func (client *Client) Connect() bool {
 	if !atomic.CompareAndSwapInt32(&client.status, clientStatusClosed, clientStatusConnecting) {
-		xtnet.GetLogger().LogWarn("tcp.Client.Connect: client is not closed")
+		xtnet.GetLogger().LogWarn("websocket.Client.Connect: client is not closed")
 		return false
 	}
 
 	go func() {
-		conn, err := net.Dial("tcp", client.addr)
+		u := url.URL{
+			Scheme: "ws",
+			Host:   client.addr,
+		}
+
+		conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
 			atomic.StoreInt32(&client.status, clientStatusClosed)
 			client.agent.HandleConnectFailed(client)
 			return
 		}
 
-		if client.sessionCreator == nil {
-			client.sessionCreator = NewSessionCreator(sendChanSizeDefault)
-		}
-		if client.pktProcCreator == nil {
-			client.pktProcCreator = NewPktProcCreator(maxPkgSizeDefault, orderDefault)
-		}
-
-		session := client.sessionCreator.CreateSession(conn)
-		pktProc := client.pktProcCreator.CreatePktProc()
-		session.setPktProc(pktProc)
+		session := NewSession(conn)
 		session.SetSessionStartCb(func(session xtnetNet.ISession) {
 			atomic.StoreInt32(&client.status, clientStatusConnected)
 			client.agent.HandleConnect(client)
@@ -90,24 +85,21 @@ func (client *Client) ConnectSync(TimeOutMS int) error {
 		return ClientErrWrongStatus
 	}
 
-	conn, err := net.Dial("tcp", client.addr)
+	u := url.URL{
+		Scheme: "ws",
+		Host:   client.addr,
+	}
+
+	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		atomic.StoreInt32(&client.status, clientStatusClosed)
+		client.agent.HandleConnectFailed(client)
 		return err
 	}
 
 	chanSign := make(chan int)
 
-	if client.sessionCreator == nil {
-		client.sessionCreator = NewSessionCreator(sendChanSizeDefault)
-	}
-	if client.pktProcCreator == nil {
-		client.pktProcCreator = NewPktProcCreator(maxPkgSizeDefault, orderDefault)
-	}
-
-	session := client.sessionCreator.CreateSession(conn)
-	pktProc := client.pktProcCreator.CreatePktProc()
-	session.setPktProc(pktProc)
+	session := NewSession(conn)
 	session.SetSessionStartCb(func(session xtnetNet.ISession) {
 		atomic.StoreInt32(&client.status, clientStatusConnected)
 		chanSign <- 1

@@ -12,9 +12,9 @@ import (
 */
 
 const (
-	rtDirect   int8 = iota //直接，没有RPC
-	rtRequest              //RPC请求
-	rtResponse             //异步RPC回应
+	rtDirect   int8 = iota + 1 //直接，没有RPC
+	rtRequest                  //RPC请求
+	rtResponse                 //异步RPC回应
 )
 
 const maxContextID int32 = 0x7FFFFFFF
