@@ -65,7 +65,7 @@ func (proc *PktProc) Pack(data []byte) []byte {
 	proc.byteOrder.PutUint32(pktData, uint32(pktLen))
 	copy(pktData[pktHeadSize:], data)
 	proc.sendBuff.AddWritePos(pktHeadSize + pktLen)
-	return pktData
+	return pktData[:pktHeadSize+pktLen]
 }
 
 type PktProcCreator struct {
