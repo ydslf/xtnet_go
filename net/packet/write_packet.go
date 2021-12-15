@@ -52,7 +52,11 @@ func (wpk *WritePacket) GetReserveValidSize() int {
 }
 
 func (wpk *WritePacket) GetData() []byte {
-	return wpk.data[:wpk.pos]
+	return wpk.data[wpk.pos:]
+}
+
+func (wpk *WritePacket) GetDataBySize(size int) []byte {
+	return wpk.data[wpk.pos : wpk.pos+size]
 }
 
 func (wpk *WritePacket) GetRealData() []byte {
@@ -61,6 +65,10 @@ func (wpk *WritePacket) GetRealData() []byte {
 
 func (wpk *WritePacket) CheckSize(size int) bool {
 	return wpk.GetValidSize() >= size
+}
+
+func (wpk *WritePacket) AddPos(len int) {
+	wpk.pos += len
 }
 
 func (wpk *WritePacket) expand(size int) bool {
