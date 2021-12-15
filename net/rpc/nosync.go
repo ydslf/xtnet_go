@@ -83,22 +83,26 @@ func (rpc *NoSync) GenContextID() int32 {
 }
 
 func (rpc *NoSync) SendDirect(session net.ISession, wpk *packet.WritePacket) {
-	wpk.WriteReserveInt32(0)
-	wpk.WriteReserveInt8(rtDirect)
-	session.Send(wpk.GetRealData())
+	if session != nil {
+		wpk.WriteReserveInt32(0)
+		wpk.WriteReserveInt8(rtDirect)
+		session.Send(wpk.GetRealData())
+	}
 }
 
 func (rpc *NoSync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback) {
-	contextID := rpc.GenContextID()
-	context := &ContextNoSync{
-		contextID: contextID,
-		cb:        cb,
-	}
-	rpc.contexts[contextID] = context
+	if session != nil {
+		contextID := rpc.GenContextID()
+		context := &ContextNoSync{
+			contextID: contextID,
+			cb:        cb,
+		}
+		rpc.contexts[contextID] = context
 
-	wpk.WriteReserveInt32(contextID)
-	wpk.WriteReserveInt8(rtRequest)
-	session.Send(wpk.GetRealData())
+		wpk.WriteReserveInt32(contextID)
+		wpk.WriteReserveInt8(rtRequest)
+		session.Send(wpk.GetRealData())
+	}
 }
 
 func (rpc *NoSync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (rpk *packet.ReadPacket, err error) {
@@ -106,7 +110,9 @@ func (rpc *NoSync) RequestSync(session net.ISession, wpk *packet.WritePacket, ex
 }
 
 func (rpc *NoSync) Respond(session net.ISession, contextID int32, wpk *packet.WritePacket) {
-	wpk.WriteReserveInt32(contextID)
-	wpk.WriteReserveInt8(rtResponse)
-	session.Send(wpk.GetRealData())
+	if session != nil {
+		wpk.WriteReserveInt32(contextID)
+		wpk.WriteReserveInt8(rtResponse)
+		session.Send(wpk.GetRealData())
+	}
 }

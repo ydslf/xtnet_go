@@ -77,8 +77,8 @@ func (client *Client) Connect() bool {
 			client.session = nil
 			client.agent.HandleConnectBreak(client)
 		})
-		session.start()
 		client.session = session
+		session.start()
 	}()
 
 	return true
