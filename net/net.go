@@ -25,6 +25,7 @@ type ISession interface {
 	SetSessionCloseCb(OnSessionClose)
 	SetUserData(userData interface{})
 	GetUserData() interface{}
+	GetRemoteAddr() string
 }
 
 type IServerAgent interface {

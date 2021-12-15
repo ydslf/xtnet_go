@@ -123,6 +123,9 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 
 func (session *Session) start() {
 	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
+		atomic.StoreInt32(&session.status, sessionStatusRunning)
+		session.onSessionStart(session)
+
 		session.wgClose.Add(2)
 		go session.subRoutine()
 		go session.readRoutine()
@@ -131,9 +134,6 @@ func (session *Session) start() {
 }
 
 func (session *Session) subRoutine() {
-	atomic.StoreInt32(&session.status, sessionStatusRunning)
-	session.onSessionStart(session)
-
 	session.wgClose.Wait()
 	atomic.StoreInt32(&session.status, sessionStatusClosed)
 	session.conn.Close()

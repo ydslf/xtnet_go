@@ -80,7 +80,9 @@ func (server *Server) Start() bool {
 	atomic.StoreInt32(&server.status, serverStatusStarted)
 	server.listener = listener
 	server.httpServer = &http.Server{
-		Handler: new(Handler),
+		Handler: &Handler{
+			server: server,
+		},
 	}
 
 	go func() {

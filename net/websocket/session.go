@@ -116,6 +116,9 @@ func (session *Session) doClose(ct closeType, waitWrite bool) bool {
 
 func (session *Session) start() {
 	if atomic.CompareAndSwapInt32(&session.status, sessionStatusNone, sessionStatusInit) {
+		atomic.StoreInt32(&session.status, sessionStatusRunning)
+		session.onSessionStart(session)
+
 		session.wgClose.Add(2)
 		go session.subRoutine()
 		go session.readRoutine()
@@ -124,9 +127,6 @@ func (session *Session) start() {
 }
 
 func (session *Session) subRoutine() {
-	atomic.StoreInt32(&session.status, sessionStatusRunning)
-	session.onSessionStart(session)
-
 	session.wgClose.Wait()
 	atomic.StoreInt32(&session.status, sessionStatusClosed)
 	session.conn.Close()
@@ -136,21 +136,22 @@ func (session *Session) subRoutine() {
 }
 
 func (session *Session) readRoutine() {
+	defer session.wgClose.Done()
+
 	for {
-		messageType, data, err := session.conn.ReadMessage()
+		_, data, err := session.conn.ReadMessage()
 		if err != nil {
-			xtnet.GetLogger().LogError("websocket.session.readRoutine: err=%v", err)
+			//xtnet.GetLogger().LogError("websocket.session.readRoutine: err=%v", err)
 			session.doClose(ctByRead, false)
 			return
 		}
-		switch messageType {
-		case websocket.BinaryMessage:
-			session.onSessionData(session, data)
-		}
+		session.onSessionData(session, data)
 	}
 }
 
 func (session *Session) writeRoutine() {
+	defer session.wgClose.Done()
+
 	for {
 		select {
 		case data, ok := <-session.sendChan:
