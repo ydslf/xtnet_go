@@ -47,13 +47,15 @@ func (client *Client) Connect() bool {
 	}
 
 	go func() {
-		u := url.URL{
-			Scheme: "ws",
-			Host:   client.addr,
+		u, errParse := url.Parse(client.addr)
+		if errParse != nil {
+			xtnet.GetLogger().LogError("tcp.Client.Connect: url.Parse error=%s", errParse.Error())
+			return
 		}
 
 		conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 		if err != nil {
+			xtnet.GetLogger().LogError("tcp.Client.Connect: connect error=%s", err.Error())
 			atomic.StoreInt32(&client.status, clientStatusClosed)
 			client.agent.HandleConnectFailed(client)
 			return
@@ -85,13 +87,15 @@ func (client *Client) ConnectSync(TimeOutMS int) error {
 		return ClientErrWrongStatus
 	}
 
-	u := url.URL{
-		Scheme: "ws",
-		Host:   client.addr,
+	u, errParse := url.Parse(client.addr)
+	if errParse != nil {
+		xtnet.GetLogger().LogError("tcp.Client.Connect: url.Parse error=%s", errParse.Error())
+		return errParse
 	}
 
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
+		xtnet.GetLogger().LogWarn("tcp.Client.Connect: connect error=%s", err.Error())
 		atomic.StoreInt32(&client.status, clientStatusClosed)
 		client.agent.HandleConnectFailed(client)
 		return err
