@@ -82,10 +82,21 @@ func (rpc *NoSync) GenContextID() int32 {
 	return rpc.contextID
 }
 
+func (rpc *NoSync) WriteDirectHead(wpk *packet.WritePacket) {
+	wpk.WriteReserveInt32(0)
+	wpk.WriteReserveInt8(rtDirect)
+}
+
 func (rpc *NoSync) SendDirect(session net.ISession, wpk *packet.WritePacket) {
 	if session != nil {
 		wpk.WriteReserveInt32(0)
 		wpk.WriteReserveInt8(rtDirect)
+		session.Send(wpk.GetRealData())
+	}
+}
+
+func (rpc *NoSync) SendDirectRaw(session net.ISession, wpk *packet.WritePacket) {
+	if session != nil {
 		session.Send(wpk.GetRealData())
 	}
 }

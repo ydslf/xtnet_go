@@ -100,10 +100,21 @@ func (rpc *Sync) GenContextID() int32 {
 	return rpc.contextID
 }
 
+func (rpc *Sync) WriteDirectHead(wpk *packet.WritePacket) {
+	wpk.WriteReserveInt32(0)
+	wpk.WriteReserveInt8(rtDirect)
+}
+
 func (rpc *Sync) SendDirect(session net.ISession, wpk *packet.WritePacket) {
 	wpk.WriteReserveInt32(0)
 	wpk.WriteReserveInt8(rtDirect)
 	session.Send(wpk.GetRealData())
+}
+
+func (rpc *Sync) SendDirectRaw(session net.ISession, wpk *packet.WritePacket) {
+	if session != nil {
+		session.Send(wpk.GetRealData())
+	}
 }
 
 func (rpc *Sync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback) {

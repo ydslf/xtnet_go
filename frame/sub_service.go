@@ -28,7 +28,7 @@ func (ss *SubService) Reply(reply LoopFun) {
 func (ss *SubService) Run() {
 	ss.wgClose.Add(1)
 	go func() {
-		ss.wgClose.Done()
+		defer ss.wgClose.Done()
 		ss.loop.Run()
 	}()
 }
