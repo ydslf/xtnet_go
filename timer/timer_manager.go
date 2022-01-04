@@ -34,3 +34,7 @@ func (manager *Manager) NewTimer(timerType int8) ITimer {
 		return nil
 	}
 }
+
+func (manager *Manager) NewSystemTimer() ITimer {
+	return NewSystemTimer(manager.loop)
+}
