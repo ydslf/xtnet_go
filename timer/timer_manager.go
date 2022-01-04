@@ -12,7 +12,7 @@ const (
 type Cb func()
 
 type ITimer interface {
-	Start(d time.Duration, repeat bool, cb Cb)
+	Start(d time.Duration, repeat time.Duration, cb Cb)
 	Stop()
 }
 

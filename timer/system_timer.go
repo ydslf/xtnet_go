@@ -46,33 +46,43 @@ func systemTimerFunc(arg interface{}, seq uintptr) {
 }
 
 type SystemTimer struct {
-	loop *frame.Loop
-	cb   Cb
-	r    runtimeTimer
+	loop  *frame.Loop
+	cb    Cb
+	r     *runtimeTimer
+	start bool
 }
 
 func NewSystemTimer(loop *frame.Loop) *SystemTimer {
 	return &SystemTimer{
-		loop: loop,
+		loop:  loop,
+		start: false,
 	}
 }
 
-func (timer *SystemTimer) Start(d time.Duration, repeat bool, cb Cb) {
-	//TODO 要先关闭 repeat用int,等于0表示不循环
-	timer.cb = cb
-	timer.r.when = when(d)
-	timer.r.f = systemTimerFunc
-	timer.r.arg = timer
-	if repeat {
-		timer.r.period = int64(d)
-	}
+func (timer *SystemTimer) Start(d time.Duration, repeat time.Duration, cb Cb) {
+	timer.Stop()
 
-	addtimer(&timer.r)
+	timer.cb = cb
+	timer.r = &runtimeTimer{
+		when: when(d),
+		f:    systemTimerFunc,
+		arg:  timer,
+	}
+	if repeat > 0 {
+		timer.r.period = int64(repeat)
+	}
+	timer.start = true
+
+	addtimer(timer.r)
 }
 
 func (timer *SystemTimer) Stop() {
-	if timer.r.f == nil {
-		panic("time: Stop called on uninitialized Timer")
+	if timer.start {
+		if timer.r.f == nil {
+			panic("time: Stop called on uninitialized Timer")
+		}
+		deltimer(timer.r)
+		timer.r = nil
+		timer.start = false
 	}
-	deltimer(&timer.r)
 }
