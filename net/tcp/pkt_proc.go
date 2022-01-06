@@ -21,7 +21,7 @@ var (
 */
 
 const (
-	maxPkgSizeDefault int = 1024 * 4
+	maxPkgSizeDefault int = 1024 * 64
 	pktHeadSize       int = 4
 )
 
