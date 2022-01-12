@@ -5,9 +5,9 @@ import "fmt"
 const (
 	Reset   int = 0
 	Gray    int = 32
-	Yellow  int = 31
+	Red     int = 31
 	Green   int = 32
-	Red     int = 33
+	Yellow  int = 33
 	Blue    int = 34
 	Magenta int = 35
 	Cyan    int = 36
