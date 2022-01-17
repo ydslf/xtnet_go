@@ -30,7 +30,7 @@ func main() {
 	eventHandler := eventhandler.NewServerEventHandler()
 	eventHandler.OnAccept = func(server xtnetNet.IServer, session xtnetNet.ISession) {
 		fmt.Println("OnAccept: ", session)
-		timer1.Start(time.Second*5, false, func() {
+		timer1.Start(time.Second*5, 0, func() {
 			msg1, _ := encoding.Encode("abc")
 			session.Send(msg1)
 			msg2, _ := encoding.Encode("def")

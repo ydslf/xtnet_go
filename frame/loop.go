@@ -1,6 +1,7 @@
 package frame
 
 import (
+	"runtime/debug"
 	xtnet "xtnet"
 )
 
@@ -47,6 +48,16 @@ func (loop *Loop) Post(f LoopFun) {
 	loop.functions <- f
 }
 
+func (loop *Loop) protectFun(f LoopFun) {
+	defer func() {
+		if err := recover(); err != nil {
+			xtnet.GetLogger().LogError("loop.protectFun: %v", err)
+			xtnet.GetLogger().LogError(string(debug.Stack()))
+		}
+	}()
+	f()
+}
+
 func (loop *Loop) Run() {
 	if loop.status != loopStatusInit {
 		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", loop.status)
@@ -61,7 +72,7 @@ func (loop *Loop) Run() {
 			if ok == false {
 				return
 			}
-			f()
+			loop.protectFun(f)
 		case <-loop.closeChan:
 			return
 		}
