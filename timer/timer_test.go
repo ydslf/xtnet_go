@@ -8,12 +8,12 @@ import (
 )
 
 func TestSystemTimer(t *testing.T) {
-	serviceMain := frame.NewService()
-	manager := NewManager(serviceMain)
+	loop := frame.NewLoop(0, true)
+	manager := NewManager(loop)
 	timer := manager.NewTimer(System)
-	timer.Start(time.Second*1, false, func() {
+	timer.Start(time.Second*1, 0, func() {
 		fmt.Println("startedEnd", time.Now())
 		fmt.Println(timer)
 	})
-	serviceMain.GetLoop().RunOnce()
+	loop.RunOnce()
 }

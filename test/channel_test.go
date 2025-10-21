@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"testing"
 	"time"
 )
 
@@ -9,7 +10,7 @@ import (
 //关闭channel: 在channel的队列的前面的数据读完之后, 读取操作会立刻返回 零值和false (for range 也是)
 //select 中，会忽略chan为nil的读取和写入
 
-func channelTest1() {
+func TestChannel1(t *testing.T) {
 	messages := make(chan string, 1)
 	signals := make(chan bool)
 
@@ -38,7 +39,7 @@ func channelTest1() {
 	}
 }
 
-func channelTest2() {
+func TestChannel2(t *testing.T) {
 	ch := make(chan string, 3)
 	ch <- "a"
 	ch <- "b"
@@ -75,8 +76,8 @@ FOR:
 	}
 }
 
-//close channel
-func channelTest3() {
+// close channel
+func TestChannel3(t *testing.T) {
 	ch := make(chan string, 3)
 	ch <- "a"
 	ch <- "b"
@@ -97,7 +98,7 @@ func channelTest3() {
 	time.Sleep(time.Hour * 1)
 }
 
-func channelClose() {
+func TestChannelClose(t *testing.T) {
 	ch := make(chan string, 3)
 	ch <- "a"
 	ch <- "b"
@@ -116,8 +117,8 @@ func channelClose() {
 	time.Sleep(time.Hour * 1)
 }
 
-//cpu 100%, 加default
-func channelTest4() {
+// cpu 100%, 加default
+func TestChannel4(t *testing.T) {
 	ch := make(chan string, 3)
 	ch1 := make(chan int)
 	ch <- "a"
@@ -154,8 +155,8 @@ func channelTest4() {
 	time.Sleep(time.Hour * 1)
 }
 
-//select no for
-func channelTest5() {
+// select no for
+func TestChannel5(t *testing.T) {
 	ch := make(chan string, 3)
 	//ch <- "a"
 	//ch <- "b"
@@ -178,8 +179,8 @@ func channelTest5() {
 	time.Sleep(time.Hour * 1)
 }
 
-//获取消息的协程再写消息
-func channelTest6() {
+// 获取消息的协程再写消息
+func TestChannel6(t *testing.T) {
 	ch := make(chan string, 3)
 	//ch <- "a"
 	//ch <- "b"
@@ -205,14 +206,4 @@ func channelTest6() {
 	ch <- "b"
 	//close(ch)
 	time.Sleep(time.Hour * 1)
-}
-
-func main() {
-	//channelTest1()
-	//channelTest2()
-	//channelTest3()
-	//channelTest4()
-	//channelTest5()
-	channelTest6()
-	//channelClose()
 }

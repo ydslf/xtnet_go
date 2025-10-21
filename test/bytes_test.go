@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"testing"
 	"unsafe"
 )
 
@@ -55,7 +56,7 @@ type StringMock struct {
 	len int
 }
 
-func testBytes1() {
+func TestBytes1(t *testing.T) {
 	var testStruct = &TestStructTobytes11{
 		Data: 1234,
 	}
@@ -93,7 +94,7 @@ func testBytes1() {
 	fmt.Println(s2)
 }
 
-func testBytesSlice() {
+func TestBytesSlice(t *testing.T) {
 	buf := new(bytes.Buffer)
 	valueSource := []int32{1, 2, 3, 4, 5, 6, 7, 8}
 	valueEn := valueSource[:5]
@@ -106,7 +107,7 @@ func testBytesSlice() {
 	fmt.Println(e2)
 }
 
-func testBytesStruct() {
+func TestBytesStruct(t *testing.T) {
 	buf := new(bytes.Buffer)
 	valueEn := &TestStructTobytes{
 		Data:  123,
@@ -125,8 +126,7 @@ func testBytesStruct() {
 	fmt.Println(e2)
 }
 
-func testBytesStruct1() {
-	fmt.Println("==========================================================")
+func TestBytesStruct1(t *testing.T) {
 	buf := new(bytes.Buffer)
 	valueEn := TestStructTobytes1{
 		Data:  123,
@@ -143,10 +143,9 @@ func testBytesStruct1() {
 	e2 := binary.Read(buf1, binary.BigEndian, valueEnDe)
 	fmt.Printf("%v\n", valueEnDe)
 	fmt.Println(e2)
-	fmt.Println("==========================================================")
 }
 
-func testBytesStructPrivate() {
+func TestBytesStructPrivate(t *testing.T) {
 	buf := new(bytes.Buffer)
 	valueEn := TestStructTobytesPrivate{
 		data:  123,
@@ -162,7 +161,7 @@ func testBytesStructPrivate() {
 	fmt.Println(e2)
 }
 
-func testBytesStructSkip() {
+func TestBytesStructSkip(t *testing.T) {
 	buf := new(bytes.Buffer)
 	valueEn := TestStructTobytesSkip{
 		Data:  123,
@@ -178,8 +177,7 @@ func testBytesStructSkip() {
 	fmt.Println(e2)
 }
 
-func testReflect() {
-	fmt.Println("==========================================================")
+func TestReflect(tt *testing.T) {
 	a := &TestStructTobytesReflect{
 		data:  1,
 		Data1: 2,
@@ -225,12 +223,9 @@ func testReflect() {
 	var testint int32 = 123
 	v = reflect.ValueOf(&testint)
 	fmt.Println(v.Elem().CanSet())
-
-	fmt.Println("==========================================================")
 }
 
-func testStr() {
-	fmt.Println("==========================================================")
+func TestStr(t *testing.T) {
 	var teststr string = "abc"
 	teststr1 := teststr
 	fmt.Println(teststr)
@@ -277,17 +272,4 @@ func testStr() {
 
 	fmt.Println(str1)
 	fmt.Println(str2)
-
-	fmt.Println("==========================================================")
-}
-
-func main() {
-	//testBytes1()
-	//testBytesSlice()
-	//testBytesStruct()
-	//testBytesStruct1()
-	//testBytesStructPrivate()
-	//testBytesStructSkip()
-	//testReflect()
-	testStr()
 }
