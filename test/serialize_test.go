@@ -12,7 +12,7 @@ import (
 	"xtnet/util"
 )
 
-type TestStructTobytes1 struct {
+type TestStructToBytes1 struct {
 	Data   int64
 	DArray [3]int32
 	Data1  int32
@@ -152,7 +152,7 @@ func TestGoBinarySlice(t *testing.T) {
 }
 
 func TestGoBinary(t *testing.T) {
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -163,14 +163,14 @@ func TestGoBinary(t *testing.T) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, valueEn)
 
-	valueDe := &TestStructTobytes1{}
+	valueDe := &TestStructToBytes1{}
 	buf1 := bytes.NewReader(buf.Bytes())
 	binary.Read(buf1, binary.BigEndian, valueDe)
 	fmt.Printf("%v\n", valueDe)
 }
 
 func TestGob(t *testing.T) {
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -183,13 +183,13 @@ func TestGob(t *testing.T) {
 	encoder.Encode(valueEn)
 
 	decoder := gob.NewDecoder(bytes.NewReader(buf.Bytes()))
-	valueDe := &TestStructTobytes1{}
+	valueDe := &TestStructToBytes1{}
 	decoder.Decode(valueDe)
 	fmt.Printf("%v\n", valueDe)
 }
 
 func TestJson(t *testing.T) {
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -201,7 +201,7 @@ func TestJson(t *testing.T) {
 	fmt.Println(b)
 	fmt.Println(string(b))
 
-	valueDe := &TestStructTobytes1{}
+	valueDe := &TestStructToBytes1{}
 	json.Unmarshal(b, valueDe)
 	fmt.Printf("%v\n", valueDe)
 }
@@ -324,7 +324,7 @@ func BenchmarkEncodeFixStruct(b *testing.B) {
 }
 
 func BenchmarkGoBinary(b *testing.B) {
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -336,14 +336,14 @@ func BenchmarkGoBinary(b *testing.B) {
 		buf := new(bytes.Buffer)
 		binary.Write(buf, binary.BigEndian, valueEn)
 
-		valueDe := &TestStructTobytes1{}
+		valueDe := &TestStructToBytes1{}
 		buf1 := bytes.NewReader(buf.Bytes())
 		binary.Read(buf1, binary.BigEndian, valueDe)
 	}
 }
 
 func BenchmarkGob(b *testing.B) {
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -357,13 +357,13 @@ func BenchmarkGob(b *testing.B) {
 		encoder.Encode(valueEn)
 
 		decoder := gob.NewDecoder(bytes.NewReader(buf.Bytes()))
-		valueDe := &TestStructTobytes1{}
+		valueDe := &TestStructToBytes1{}
 		decoder.Decode(valueDe)
 	}
 }
 
 func BenchmarkJson(b *testing.B) {
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -374,7 +374,7 @@ func BenchmarkJson(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b, _ := json.Marshal(valueEn)
 
-		valueDe := &TestStructTobytes1{}
+		valueDe := &TestStructToBytes1{}
 		json.Unmarshal(b, valueDe)
 	}
 }

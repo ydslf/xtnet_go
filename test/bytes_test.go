@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"bytes"
@@ -10,28 +10,28 @@ import (
 	"unsafe"
 )
 
-type TestStructTobytes11 struct {
+type TestStructToBytes11 struct {
 	Data int64
 }
 
-type TestStructTobytes struct {
+type TestStructToBytes struct {
 	Data   int64
 	DSlice []int32
 	Data1  int32
 }
 
-type TestStructTobytes1 struct {
+type TestStructToBytes12 struct {
 	Data   int64
 	DArray [3]int32
 	Data1  int32
 }
 
-type TestStructTobytesPrivate struct {
+type TestStructToBytesPrivate struct {
 	data  int64
 	Data1 int32
 }
 
-type TestStructTobytesReflect struct {
+type TestStructToBytesReflect struct {
 	data  int64 `key1:value1 key2:value2`
 	Data1 int32
 	Data2 string
@@ -40,7 +40,7 @@ type TestStructTobytesReflect struct {
 	_     int32
 }
 
-type TestStructTobytesSkip struct {
+type TestStructToBytesSkip struct {
 	Data  int64
 	Data1 int32
 }
@@ -57,7 +57,7 @@ type StringMock struct {
 }
 
 func TestBytes1(t *testing.T) {
-	var testStruct = &TestStructTobytes11{
+	var testStruct = &TestStructToBytes11{
 		Data: 1234,
 	}
 	Len := unsafe.Sizeof(*testStruct)
@@ -73,7 +73,7 @@ func TestBytes1(t *testing.T) {
 
 	data := *(*[]byte)(unsafe.Pointer(testBytes))
 	fmt.Println("[]byte is : ", data)
-	var ptestStruct = *(**TestStructTobytes11)(unsafe.Pointer(&data))
+	var ptestStruct = *(**TestStructToBytes11)(unsafe.Pointer(&data))
 	fmt.Println("ptestStruct.data is : ", ptestStruct.Data)
 
 	test1 := []byte{111, 0, 1, 2}
@@ -109,7 +109,7 @@ func TestBytesSlice(t *testing.T) {
 
 func TestBytesStruct(t *testing.T) {
 	buf := new(bytes.Buffer)
-	valueEn := &TestStructTobytes{
+	valueEn := &TestStructToBytes{
 		Data:  123,
 		Data1: 789,
 	}
@@ -119,7 +119,7 @@ func TestBytesStruct(t *testing.T) {
 
 	e1 := binary.Write(buf, binary.BigEndian, valueEn)
 	fmt.Println(e1)
-	valueEnDe := &TestStructTobytes{}
+	valueEnDe := &TestStructToBytes{}
 	buf1 := bytes.NewReader(buf.Bytes())
 	e2 := binary.Read(buf1, binary.BigEndian, valueEnDe)
 	fmt.Printf("%v\n", valueEnDe)
@@ -128,7 +128,7 @@ func TestBytesStruct(t *testing.T) {
 
 func TestBytesStruct1(t *testing.T) {
 	buf := new(bytes.Buffer)
-	valueEn := TestStructTobytes1{
+	valueEn := TestStructToBytes1{
 		Data:  123,
 		Data1: 789,
 	}
@@ -138,7 +138,7 @@ func TestBytesStruct1(t *testing.T) {
 
 	e1 := binary.Write(buf, binary.BigEndian, valueEn)
 	fmt.Println(e1)
-	valueEnDe := &TestStructTobytes1{}
+	valueEnDe := &TestStructToBytes1{}
 	buf1 := bytes.NewReader(buf.Bytes())
 	e2 := binary.Read(buf1, binary.BigEndian, valueEnDe)
 	fmt.Printf("%v\n", valueEnDe)
@@ -147,14 +147,14 @@ func TestBytesStruct1(t *testing.T) {
 
 func TestBytesStructPrivate(t *testing.T) {
 	buf := new(bytes.Buffer)
-	valueEn := TestStructTobytesPrivate{
+	valueEn := TestStructToBytesPrivate{
 		data:  123,
 		Data1: 789,
 	}
 
 	e1 := binary.Write(buf, binary.BigEndian, valueEn)
 	fmt.Println(e1)
-	valueEnDe := &TestStructTobytesPrivate{}
+	valueEnDe := &TestStructToBytesPrivate{}
 	buf1 := bytes.NewReader(buf.Bytes())
 	e2 := binary.Read(buf1, binary.BigEndian, valueEnDe)
 	fmt.Printf("%v\n", valueEnDe)
@@ -163,22 +163,22 @@ func TestBytesStructPrivate(t *testing.T) {
 
 func TestBytesStructSkip(t *testing.T) {
 	buf := new(bytes.Buffer)
-	valueEn := TestStructTobytesSkip{
+	valueEn := TestStructToBytesSkip{
 		Data:  123,
 		Data1: 789,
 	}
 
 	e1 := binary.Write(buf, binary.BigEndian, valueEn)
 	fmt.Println(e1)
-	valueEnDe := &TestStructTobytesSkip{}
+	valueEnDe := &TestStructToBytesSkip{}
 	buf1 := bytes.NewReader(buf.Bytes())
 	e2 := binary.Read(buf1, binary.BigEndian, valueEnDe)
 	fmt.Printf("%v\n", valueEnDe)
 	fmt.Println(e2)
 }
 
-func TestReflect(tt *testing.T) {
-	a := &TestStructTobytesReflect{
+func TestReflect1(tt *testing.T) {
+	a := &TestStructToBytesReflect{
 		data:  1,
 		Data1: 2,
 	}
