@@ -1,88 +1,97 @@
 package timer
 
 import (
-	_ "runtime"
+	"sync"
 	"time"
-	_ "unsafe" // for go:linkname
 	"xtnet/frame"
 )
 
-//go:linkname runtimeNano runtime.nanotime
-func runtimeNano() int64
-
-//go:linkname deltimer runtime.deltimer
-func deltimer(*runtimeTimer) bool
-
-//go:linkname addtimer runtime.addtimer
-func addtimer(t *runtimeTimer)
-
-func when(d time.Duration) int64 {
-	if d <= 0 {
-		return runtimeNano()
-	}
-	t := runtimeNano() + int64(d)
-	if t < 0 {
-		t = 1<<63 - 1 // math.MaxInt64
-	}
-	return t
-}
-
-type runtimeTimer struct {
-	pp       uintptr
-	when     int64
-	period   int64
-	f        func(interface{}, uintptr) // NOTE: must not be closure
-	arg      interface{}
-	seq      uintptr
-	nextwhen int64
-	status   uint32
-}
-
-func systemTimerFunc(arg interface{}, seq uintptr) {
-	timer := arg.(*SystemTimer)
-	timer.loop.Post(func() {
-		timer.cb()
-	})
-}
-
 type SystemTimer struct {
-	loop  *frame.Loop
-	cb    Cb
-	r     *runtimeTimer
-	start bool
+	loop     *frame.Loop
+	ticker   *time.Ticker
+	running  bool
+	stopChan chan struct{}
+	mutex    sync.Mutex
+	wg       sync.WaitGroup
 }
 
 func NewSystemTimer(loop *frame.Loop) *SystemTimer {
 	return &SystemTimer{
-		loop:  loop,
-		start: false,
+		loop:    loop,
+		running: false,
 	}
 }
 
-func (timer *SystemTimer) Start(d time.Duration, repeat time.Duration, cb Cb) {
-	timer.Stop()
+func (t *SystemTimer) Start(d time.Duration, repeat int, cb Cb) {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
 
-	timer.cb = cb
-	timer.r = &runtimeTimer{
-		when: when(d),
-		f:    systemTimerFunc,
-		arg:  timer,
+	if t.running {
+		t.stop()
 	}
-	if repeat > 0 {
-		timer.r.period = int64(repeat)
-	}
-	timer.start = true
 
-	addtimer(timer.r)
+	t.ticker = time.NewTicker(d)
+	t.stopChan = make(chan struct{})
+	t.running = true
+	t.wg.Add(1)
+
+	go t.run(repeat, cb)
 }
 
-func (timer *SystemTimer) Stop() {
-	if timer.start {
-		if timer.r.f == nil {
-			panic("time: Stop called on uninitialized Timer")
+func (t *SystemTimer) run(repeat int, cb Cb) {
+	defer t.wg.Done()
+
+	defer func() {
+		t.mutex.Lock()
+		defer t.mutex.Unlock()
+
+		if t.ticker != nil {
+			t.ticker.Stop()
+			t.ticker = nil
 		}
-		deltimer(timer.r)
-		timer.r = nil
-		timer.start = false
+		t.stopChan = nil
+		t.running = false
+	}()
+
+	count := 0
+	for {
+		select {
+		case <-t.ticker.C:
+			t.loop.Post(func() {
+				cb()
+			})
+
+			if repeat == RepeatInfinity {
+				continue
+			}
+
+			count++
+			if count > repeat {
+				return
+			}
+
+		case <-t.stopChan:
+			return
+		}
 	}
+}
+
+func (t *SystemTimer) Stop() {
+	t.mutex.Lock()
+	defer t.mutex.Unlock()
+
+	t.stop()
+}
+
+func (t *SystemTimer) stop() {
+	if !t.running {
+		return
+	}
+	t.running = false
+
+	if t.stopChan != nil {
+		close(t.stopChan)
+	}
+
+	t.wg.Wait()
 }

@@ -9,10 +9,17 @@ const (
 	System int8 = 1 //系统timer
 )
 
+const RepeatInfinity int = -1
+
 type Cb func()
 
 type ITimer interface {
-	Start(d time.Duration, repeat time.Duration, cb Cb)
+	// Start repeat:
+	// -1 = 无限循环
+	//  0 = 重复0次,执行1次
+	//  1 = 重复1次,执行2次
+	//  2 = 重复2次,执行3次
+	Start(d time.Duration, repeat int, cb Cb)
 	Stop()
 }
 
