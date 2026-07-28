@@ -33,12 +33,14 @@ type TimeWheel struct {
 	ticker      *time.Ticker     // 底层时钟源
 }
 
+type cbWrap struct{ fn Cb }
+
 // wheelTimerTask 单个定时任务，挂在某一层某个槽的链表中。
 type wheelTimerTask struct {
 	loop     *frame.Loop   // 回调需投递到的事件循环
 	duration time.Duration // 任务间隔
 	repeat   int           // 剩余重复次数，RepeatInfinity(-1) 表示无限
-	cb       Cb            // 到期回调
+	cb       atomic.Pointer[cbWrap]// 到期回调
 	dueTick  int64         // 到期 tick
 	slot     *list.List    // 当前所在槽（nil 表示已取出或未入槽）
 	element  *list.Element // 在槽链表中的元素句柄
@@ -130,7 +132,9 @@ func (wheel *TimeWheel) fire(task *wheelTimerTask) {
 
 	task.loop.Post(func() {
 		if !task.cancel.Load() {
-			task.cb()
+			if w := task.cb.Load(); w != nil {
+				w.fn()
+			}
 		}
 	})
 
@@ -266,8 +270,8 @@ func (timer *WheelTimer) Start(d time.Duration, repeat int, cb Cb) {
 		loop:     timer.wheel.loop,
 		duration: d,
 		repeat:   repeat,
-		cb:       cb,
 	}
+	task.cb.Store(&cbWrap{fn: cb})
 	timer.task.Store(task)
 	timer.wheel.add(task)
 }
@@ -281,5 +285,6 @@ func (timer *WheelTimer) tryStop() {
 	if old == nil {
 		return
 	}
-	timer.wheel.remove(old)
+	old.cancel.Store(true)
+	old.cb.Store(nil)
 }
