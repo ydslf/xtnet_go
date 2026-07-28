@@ -1,50 +1,64 @@
-# xtnet_go
+﻿# XTNet — Go 游戏服务器网络库
 
-#### 介绍
+高性能、可扩展的 Go 语言游戏服务器网络层框架，支持 TCP/WebSocket 协议，内置路由与 RPC 机制。
 
+---
 
-#### 软件架构
-Tcp包结构
-|           pktHead         |                      pktBody                     |    包结构
-| pktLen | crc32 | sequence | msgID |              msgBody                     |    客户端->服务器消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
-| pktLen | crc32 | sequence | msgDirection | msgID |          msgBody          |    客户端->服务器消息(网关不做router逻辑,根据msgDirection判断发送给哪个前端服务器)
-| pktLen | crc32 | sequence | msgID |              msgBody                     |    服务器->客户端消息(网关做router逻辑,自己判断消息是发送给哪个前端服务器; 或者没有网关)
-|           pktLen          | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
-|           pktLen          | ToServiceType | ToServiceID | rpcType | contextID  | msgType | msgID | msgBody |    服务器内部消息
+## 简介
 
-websocket包结构
-相对于Tcp包结构，没有pkgLen
+XTNet 是一个面向游戏服务器的网络通信库，提供：
 
+- **TCP** 与 **WebSocket** 双协议支持
+- 灵活的消息包结构设计
+- 网关路由（Router）与无网关直连两种通信模式
+- 服务端内部 RPC 通信
+- 分层服务器架构（Gate / Frontend / Backend）
 
-服务器构架
-           manager                              server manager  
-     center     matching                        backend server
+---
 
-login    lobby  lobby     game  game            frontend server
+## 软件架构
 
-    gate    gate    gate                        gate server
+### TCP 包结构
 
-        client  client                          client
+|                                    pktHead                                     |                    pktBody                     | 说明 |
+| :----------------------------------------------------------------------------: | :--------------------------------------------: | :--- |
+| `pktLen` \| `crc32` \| `sequence` \|                  `msgID`                  |                    `msgBody`                   | 客户端→服务器（网关做 router 逻辑，自行判断消息发往哪个前端服务器；或没有网关） |
+| `pktLen` \| `crc32` \| `sequence` \|              `msgDirection`              | `msgID` \| `msgBody`                          | 客户端→服务器（网关不做 router 逻辑，根据 msgDirection 判断发往哪个前端服务器） |
+| `pktLen` \| `crc32` \| `sequence` \|                  `msgID`                  |                    `msgBody`                   | 服务器→客户端（网关做 router 逻辑，自行判断消息发往哪个前端服务器；或没有网关） |
+|                               `pktLen`                                         | `rpcType` \| `contextID` \| `msgType` \| `msgID` \| `msgBody` | 服务器内部消息 |
+|                               `pktLen`                                         | `ToServiceType` \| `ToServiceID` \| `rpcType` \| `contextID` \| `msgType` \| `msgID` \| `msgBody` | 服务器内部消息 |
 
+### WebSocket 包结构
 
-待完成
-1. 加一种计时器，并且加上crontab
+相对于 TCP 包结构，**没有 pktLen** 字段。
 
-#### 安装教程
+---
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+## 服务器架构
 
-#### 使用说明
+```
+          manager                               server manager (backend)
+     center     matching
 
-1.  xxxx
-2.  xxxx
-3.  xxxx
+   login    lobby  lobby     game  game         frontend server
 
-#### 参与贡献
+      gate    gate    gate                       gate server
 
-1.  Fork 本仓库
-2.  新建 Feat_xxx 分支
-3.  提交代码
-4.  新建 Pull Request
+        client  client                           client
+```
+
+---
+
+## 待完成
+
+- [x] 增加一种新的计时器实现
+- [ ] 集成 crontab 定时调度
+
+---
+
+## 许可证
+
+<!-- TODO: 补充许可证信息 -->
+
+[返回顶部](#xtnet--go-游戏服务器网络库)
+

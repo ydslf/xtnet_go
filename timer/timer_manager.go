@@ -7,6 +7,7 @@ import (
 
 const (
 	System int8 = 1 //系统timer
+	Wheel  int8 = 2 //时间轮timer
 )
 
 const RepeatInfinity int = -1
@@ -24,7 +25,8 @@ type ITimer interface {
 }
 
 type Manager struct {
-	loop *frame.Loop
+	loop  *frame.Loop
+	wheel *TimeWheel
 }
 
 func NewManager(loop *frame.Loop) *Manager {
@@ -36,7 +38,9 @@ func NewManager(loop *frame.Loop) *Manager {
 func (manager *Manager) NewTimer(timerType int8) ITimer {
 	switch timerType {
 	case System:
-		return NewSystemTimer(manager.loop)
+		return manager.NewSystemTimer()
+	case Wheel:
+		return manager.NewWheelTimer()
 	default:
 		return nil
 	}
@@ -44,4 +48,11 @@ func (manager *Manager) NewTimer(timerType int8) ITimer {
 
 func (manager *Manager) NewSystemTimer() ITimer {
 	return NewSystemTimer(manager.loop)
+}
+
+func (manager *Manager) NewWheelTimer() ITimer {
+	if manager.wheel == nil {
+		manager.wheel = NewTimeWheel(manager.loop, defaultWheelTickTime)
+	}
+	return manager.wheel.NewTimer()
 }
