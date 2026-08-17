@@ -60,13 +60,10 @@ func (loop *Loop) protectFun(f LoopFun) {
 }
 
 func (loop *Loop) Run() {
-	status := loop.status.Load()
-	if status != loopStatusInit {
-		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", status)
+	if !loop.status.CompareAndSwap(loopStatusInit, loopStatusRunning) {
+		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", loop.status.Load())
 		return
 	}
-
-	loop.status.Store(loopStatusRunning)
 
 	for {
 		select {
