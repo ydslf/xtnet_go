@@ -2,6 +2,7 @@ package frame
 
 import (
 	"runtime/debug"
+	"sync/atomic"
 	xtnet "xtnet"
 )
 
@@ -18,7 +19,7 @@ type LoopFun func()
 type Loop struct {
 	functions chan LoopFun
 	closeChan chan int
-	status    int32
+	status    atomic.Int32
 	fullWarn  bool
 }
 
@@ -29,14 +30,14 @@ func NewLoop(size int, fullWarn bool) *Loop {
 	return &Loop{
 		functions: make(chan LoopFun, size),
 		closeChan: make(chan int, 1),
-		status:    loopStatusInit,
 		fullWarn:  fullWarn,
 	}
 }
 
 func (loop *Loop) Post(f LoopFun) {
-	if loop.status == loopStatusClose {
-		xtnet.GetLogger().LogError("Loop.Post: loop status=%d", loop.status)
+	status := loop.status.Load()
+	if status == loopStatusClose {
+		xtnet.GetLogger().LogError("Loop.Post: loop status=%d", status)
 		return
 	}
 	if loop.fullWarn {
@@ -59,12 +60,13 @@ func (loop *Loop) protectFun(f LoopFun) {
 }
 
 func (loop *Loop) Run() {
-	if loop.status != loopStatusInit {
-		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", loop.status)
+	status := loop.status.Load()
+	if status != loopStatusInit {
+		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", status)
 		return
 	}
 
-	loop.status = loopStatusRunning
+	loop.status.Store(loopStatusRunning)
 
 	for {
 		select {
@@ -80,8 +82,9 @@ func (loop *Loop) Run() {
 }
 
 func (loop *Loop) RunOnce() {
-	if loop.status != loopStatusInit {
-		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", loop.status)
+	status := loop.status.Load()
+	if status != loopStatusInit {
+		xtnet.GetLogger().LogWarn("Loop.Run: loop status=%d", status)
 		return
 	}
 
@@ -92,12 +95,13 @@ func (loop *Loop) RunOnce() {
 }
 
 func (loop *Loop) Close(waitHandle bool) {
-	if loop.status == loopStatusClose {
-		xtnet.GetLogger().LogError("Loop.Close: loop status=%d", loop.status)
+	status := loop.status.Load()
+	if status == loopStatusClose {
+		xtnet.GetLogger().LogError("Loop.Close: loop status=%d", status)
 		return
 	}
 
-	loop.status = loopStatusClose
+	loop.status.Store(loopStatusClose)
 
 	if waitHandle {
 		close(loop.functions)
