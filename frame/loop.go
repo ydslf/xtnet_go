@@ -1,6 +1,7 @@
 package frame
 
 import (
+	"runtime"
 	"runtime/debug"
 	"sync/atomic"
 	xtnet "xtnet"
@@ -17,10 +18,12 @@ const LoopSizeMin int = 4096
 type LoopFun func()
 
 type Loop struct {
-	functions chan LoopFun
-	closeChan chan int
-	status    atomic.Int32
-	fullWarn  bool
+	functions  chan LoopFun
+	closeChan  chan struct{}
+	status     atomic.Int32
+	posting    atomic.Int32
+	waitHandle bool
+	fullWarn   bool
 }
 
 func NewLoop(size int, fullWarn bool) *Loop {
@@ -29,12 +32,15 @@ func NewLoop(size int, fullWarn bool) *Loop {
 	}
 	return &Loop{
 		functions: make(chan LoopFun, size),
-		closeChan: make(chan int, 1),
+		closeChan: make(chan struct{}),
 		fullWarn:  fullWarn,
 	}
 }
 
 func (loop *Loop) Post(f LoopFun) {
+	loop.posting.Add(1)
+	defer loop.posting.Add(-1)
+
 	status := loop.status.Load()
 	if status == loopStatusClose {
 		xtnet.GetLogger().LogError("Loop.Post: loop status=%d", status)
@@ -46,7 +52,10 @@ func (loop *Loop) Post(f LoopFun) {
 		}
 	}
 
-	loop.functions <- f
+	select {
+	case loop.functions <- f:
+	case <-loop.closeChan:
+	}
 }
 
 func (loop *Loop) protectFun(f LoopFun) {
@@ -67,13 +76,27 @@ func (loop *Loop) Run() {
 
 	for {
 		select {
-		case f, ok := <-loop.functions:
-			if ok == false {
-				return
-			}
+		case f := <-loop.functions:
 			loop.protectFun(f)
 		case <-loop.closeChan:
+			if loop.waitHandle {
+				loop.drain()
+			}
 			return
+		}
+	}
+}
+
+func (loop *Loop) drain() {
+	for {
+		select {
+		case f := <-loop.functions:
+			loop.protectFun(f)
+		default:
+			if loop.posting.Load() == 0 {
+				return
+			}
+			runtime.Gosched()
 		}
 	}
 }
@@ -85,24 +108,25 @@ func (loop *Loop) RunOnce() {
 		return
 	}
 
-	f, ok := <-loop.functions
-	if ok {
+	select {
+	case f := <-loop.functions:
 		f()
+	case <-loop.closeChan:
 	}
 }
 
 func (loop *Loop) Close(waitHandle bool) {
-	status := loop.status.Load()
-	if status == loopStatusClose {
-		xtnet.GetLogger().LogError("Loop.Close: loop status=%d", status)
-		return
+	for {
+		status := loop.status.Load()
+		if status == loopStatusClose {
+			xtnet.GetLogger().LogError("Loop.Close: loop status=%d", status)
+			return
+		}
+		if loop.status.CompareAndSwap(status, loopStatusClose) {
+			break
+		}
 	}
 
-	loop.status.Store(loopStatusClose)
-
-	if waitHandle {
-		close(loop.functions)
-	} else {
-		loop.closeChan <- 1
-	}
+	loop.waitHandle = waitHandle
+	close(loop.closeChan)
 }
