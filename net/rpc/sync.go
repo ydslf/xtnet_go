@@ -17,7 +17,7 @@ const (
 	rqtSync
 )
 
-const RequestTimeout = 5000
+const minRequestTimeout = 500 * time.Millisecond
 
 type ContextSync struct {
 	contextID int32
@@ -131,7 +131,11 @@ func (rpc *Sync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb 
 	session.Send(wpk.GetRealData())
 }
 
-func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (*packet.ReadPacket, error) {
+func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS time.Duration) (*packet.ReadPacket, error) {
+	if expireMS < minRequestTimeout {
+		expireMS = minRequestTimeout
+	}
+
 	contextID := rpc.GenContextID()
 	context := &ContextSync{
 		contextID: contextID,
@@ -143,13 +147,16 @@ func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expi
 	wpk.WriteReserveInt8(rtRequest)
 	session.Send(wpk.GetRealData())
 
+	timer := time.NewTimer(expireMS)
+	defer timer.Stop()
+
 	select {
 	case rpk, ok := <-rpc.datas:
 		if !ok {
 			return nil, errors.New("RequestSync rpc closed")
 		}
 		return rpk, nil
-	case <-time.After(RequestTimeout):
+	case <-timer.C:
 		rpc.contexts.Delete(contextID)
 		return nil, errors.New("RequestSync timeout")
 	}

@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"time"
 	"xtnet/net"
 	"xtnet/net/packet"
 )
@@ -31,6 +32,6 @@ type IRpc interface {
 	SendDirect(session net.ISession, wpk *packet.WritePacket)
 	SendDirectRaw(session net.ISession, wpk *packet.WritePacket)
 	RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback)
-	RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (rpk *packet.ReadPacket, err error)
+	RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS time.Duration) (rpk *packet.ReadPacket, err error)
 	Respond(session net.ISession, contextID int32, wpk *packet.WritePacket)
 }

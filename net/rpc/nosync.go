@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"errors"
+	"time"
 	xtnet "xtnet"
 	"xtnet/frame"
 	"xtnet/net"
@@ -116,7 +117,7 @@ func (rpc *NoSync) RequestAsync(session net.ISession, wpk *packet.WritePacket, c
 	}
 }
 
-func (rpc *NoSync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS int) (rpk *packet.ReadPacket, err error) {
+func (rpc *NoSync) RequestSync(session net.ISession, wpk *packet.WritePacket, expireMS time.Duration) (rpk *packet.ReadPacket, err error) {
 	return nil, errors.New("this rpc do not support RequestSync")
 }
 
