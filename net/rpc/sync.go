@@ -23,6 +23,7 @@ type ContextSync struct {
 	contextID int32
 	t         RequestType
 	cb        RequestCallback
+	response  chan *packet.ReadPacket
 }
 
 type Sync struct {
@@ -31,14 +32,10 @@ type Sync struct {
 	onRpcRequest OnRpcRequest
 	contextID    int32
 	contexts     sync.Map
-	datas        chan *packet.ReadPacket
 }
 
 func NewSync(loop *frame.Loop) IRpc {
-	return &Sync{
-		loop:  loop,
-		datas: make(chan *packet.ReadPacket, 1),
-	}
+	return &Sync{loop: loop}
 }
 
 func (rpc *Sync) SetOnRpcDirect(onRpcDirect OnRpcDirect) {
@@ -77,15 +74,14 @@ func (rpc *Sync) handleRpcRequest(session net.ISession, contextID int32, rpk *pa
 }
 
 func (rpc *Sync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
-	if c, ok := rpc.contexts.Load(contextID); ok {
-		rpc.contexts.Delete(contextID)
+	if c, ok := rpc.contexts.LoadAndDelete(contextID); ok {
 		context := c.(*ContextSync)
 		if context.t == rqtAsync {
 			rpc.loop.Post(func() {
 				context.cb(rpk)
 			})
 		} else {
-			rpc.datas <- rpk
+			context.response <- rpk
 		}
 	} else {
 		xtnet.GetLogger().LogWarn("rpc.handlerResponse: no context, contextID=%d", contextID)
@@ -140,6 +136,7 @@ func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expi
 	context := &ContextSync{
 		contextID: contextID,
 		t:         rqtSync,
+		response:  make(chan *packet.ReadPacket, 1),
 	}
 	rpc.contexts.Store(contextID, context)
 
@@ -151,10 +148,7 @@ func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expi
 	defer timer.Stop()
 
 	select {
-	case rpk, ok := <-rpc.datas:
-		if !ok {
-			return nil, errors.New("RequestSync rpc closed")
-		}
+	case rpk := <-context.response:
 		return rpk, nil
 	case <-timer.C:
 		rpc.contexts.Delete(contextID)
