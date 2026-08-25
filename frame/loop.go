@@ -192,7 +192,7 @@ func (loop *Loop) RunOnce() {
 	select {
 	case <-loop.wakeChan:
 		if f, ok := loop.pop(); ok {
-			f()
+			loop.protectFun(f)
 		}
 	case <-loop.closeChan:
 	}
