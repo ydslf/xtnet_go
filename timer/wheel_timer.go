@@ -25,27 +25,28 @@ type TimeWheelLevel struct {
 
 // TimeWheel 分层时间轮，单 tick 驱动，mutex 保护内部状态。
 type TimeWheel struct {
-	mu          sync.Mutex       // 保护 levels / currentTick 及所有任务链表
-	loop        *frame.Loop      // 回调投递目标的事件循环
-	tickTime    time.Duration    // 每次 tick 的时间间隔
-	levels      []TimeWheelLevel // 各层时间轮
-	currentTick int64            // 当前累计 tick 数
-	ticker      *time.Ticker     // 底层时钟源
+	mu          sync.Mutex        // 保护 levels / currentTick 及所有任务链表
+	loop        *frame.Loop       // 回调投递目标的事件循环
+	tickTime    time.Duration     // 每次 tick 的时间间隔
+	levels      []TimeWheelLevel  // 各层时间轮
+	currentTick int64             // 当前累计 tick 数
+	ticker      *time.Ticker      // 底层时钟源
+	ready       []*wheelTimerTask // 已到期、等待投递到事件循环的任务
 }
 
 type cbWrap struct{ fn Cb }
 
 // wheelTimerTask 单个定时任务，挂在某一层某个槽的链表中。
 type wheelTimerTask struct {
-	loop     *frame.Loop   // 回调需投递到的事件循环
-	duration time.Duration // 任务间隔
-	repeat   int           // 剩余重复次数，RepeatInfinity(-1) 表示无限
-	cb       atomic.Pointer[cbWrap]// 到期回调
-	dueTick  int64         // 到期 tick
-	slot     *list.List    // 当前所在槽（nil 表示已取出或未入槽）
-	element  *list.Element // 在槽链表中的元素句柄
-	round    int           // 还需在最高层完整循环的轮数，0 表示最后一轮
-	cancel   atomic.Bool   // 是否已取消
+	loop     *frame.Loop            // 回调需投递到的事件循环
+	duration time.Duration          // 任务间隔
+	repeat   int                    // 剩余重复次数，RepeatInfinity(-1) 表示无限
+	cb       atomic.Pointer[cbWrap] // 到期回调
+	dueTick  int64                  // 到期 tick
+	slot     *list.List             // 当前所在槽（nil 表示已取出或未入槽）
+	element  *list.Element          // 在槽链表中的元素句柄
+	round    int                    // 还需在最高层完整循环的轮数，0 表示最后一轮
+	cancel   atomic.Bool            // 是否已取消
 }
 
 func NewTimeWheel(loop *frame.Loop, tickTime time.Duration, slotSizes ...int) *TimeWheel {
@@ -89,7 +90,9 @@ func (wheel *TimeWheel) tickLoop() {
 	for range wheel.ticker.C {
 		wheel.mu.Lock()
 		wheel.tickOnce()
+		ready := wheel.takeReady()
 		wheel.mu.Unlock()
+		wheel.postReady(ready)
 	}
 }
 
@@ -130,13 +133,7 @@ func (wheel *TimeWheel) fire(task *wheelTimerTask) {
 		return
 	}
 
-	task.loop.Post(func() {
-		if !task.cancel.Load() {
-			if w := task.cb.Load(); w != nil {
-				w.fn()
-			}
-		}
-	})
+	wheel.ready = append(wheel.ready, task)
 
 	if task.cancel.Load() {
 		return
@@ -150,6 +147,30 @@ func (wheel *TimeWheel) fire(task *wheelTimerTask) {
 	if task.repeat > 0 {
 		task.repeat--
 		wheel.schedule(task)
+	}
+}
+
+// takeReady assumes wheel.mu is held and transfers ownership of the batch.
+func (wheel *TimeWheel) takeReady() []*wheelTimerTask {
+	ready := wheel.ready
+	wheel.ready = nil
+	return ready
+}
+
+// postReady deliberately runs without wheel.mu held.
+func (wheel *TimeWheel) postReady(ready []*wheelTimerTask) {
+	for _, task := range ready {
+		if task.cancel.Load() {
+			continue
+		}
+
+		task.loop.Post(func() {
+			if !task.cancel.Load() {
+				if w := task.cb.Load(); w != nil {
+					w.fn()
+				}
+			}
+		})
 	}
 }
 
