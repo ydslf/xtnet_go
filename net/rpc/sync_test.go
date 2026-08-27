@@ -2,9 +2,52 @@ package rpc
 
 import (
 	"encoding/binary"
+	"sync"
 	"testing"
 	"xtnet/net/packet"
 )
+
+func TestSyncGenContextIDConcurrent(t *testing.T) {
+	const (
+		goroutines = 32
+		perRoutine = 1000
+	)
+
+	rpc := &Sync{}
+	ids := make(chan int32, goroutines*perRoutine)
+	var wg sync.WaitGroup
+	for range goroutines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for range perRoutine {
+				ids <- rpc.GenContextID()
+			}
+		}()
+	}
+	wg.Wait()
+	close(ids)
+
+	seen := make(map[int32]struct{}, goroutines*perRoutine)
+	for id := range ids {
+		if _, ok := seen[id]; ok {
+			t.Fatalf("GenContextID() generated duplicate ID %d", id)
+		}
+		seen[id] = struct{}{}
+	}
+}
+
+func TestSyncGenContextIDWrap(t *testing.T) {
+	rpc := &Sync{}
+	rpc.contextID.Store(maxContextID - 1)
+
+	if got := rpc.GenContextID(); got != maxContextID {
+		t.Fatalf("first GenContextID() = %d, want %d", got, maxContextID)
+	}
+	if got := rpc.GenContextID(); got != 1 {
+		t.Fatalf("wrapped GenContextID() = %d, want 1", got)
+	}
+}
 
 func TestSyncHandlerResponseRoutesByContextID(t *testing.T) {
 	rpc := &Sync{}

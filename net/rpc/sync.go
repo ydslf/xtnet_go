@@ -3,6 +3,7 @@ package rpc
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"time"
 	xtnet "xtnet"
 	"xtnet/frame"
@@ -30,7 +31,7 @@ type Sync struct {
 	loop         *frame.Loop
 	onRpcDirect  OnRpcDirect
 	onRpcRequest OnRpcRequest
-	contextID    int32
+	contextID    atomic.Int32
 	contexts     sync.Map
 }
 
@@ -89,11 +90,16 @@ func (rpc *Sync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
 }
 
 func (rpc *Sync) GenContextID() int32 {
-	if rpc.contextID == maxContextID {
-		rpc.contextID = 0
+	for {
+		current := rpc.contextID.Load()
+		next := current + 1
+		if current >= maxContextID {
+			next = 1
+		}
+		if rpc.contextID.CompareAndSwap(current, next) {
+			return next
+		}
 	}
-	rpc.contextID++
-	return rpc.contextID
 }
 
 func (rpc *Sync) WriteDirectHead(wpk *packet.WritePacket) {
