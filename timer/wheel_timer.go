@@ -31,7 +31,7 @@ type TimeWheel struct {
 	levels      []TimeWheelLevel  // 各层时间轮
 	currentTick int64             // 当前累计 tick 数
 	ticker      *time.Ticker      // 底层时钟源
-	ready       []*wheelTimerTask // 已到期、等待投递到事件循环的任务
+	ready       []*wheelTimerTask // 已到期、等待执行或投递到事件循环的任务
 }
 
 type cbWrap struct{ fn Cb }
@@ -47,6 +47,7 @@ type wheelTimerTask struct {
 	element  *list.Element          // 在槽链表中的元素句柄
 	round    int                    // 还需在最高层完整循环的轮数，0 表示最后一轮
 	cancel   atomic.Bool            // 是否已取消
+	direct   bool                   // 是否直接在时间轮 goroutine 中执行回调
 }
 
 func NewTimeWheel(loop *frame.Loop, tickTime time.Duration, slotSizes ...int) *TimeWheel {
@@ -164,6 +165,13 @@ func (wheel *TimeWheel) postReady(ready []*wheelTimerTask) {
 			continue
 		}
 
+		if task.direct {
+			if w := task.cb.Load(); w != nil && !task.cancel.Load() {
+				w.fn()
+			}
+			continue
+		}
+
 		task.loop.Post(func() {
 			if !task.cancel.Load() {
 				if w := task.cb.Load(); w != nil {
@@ -278,10 +286,20 @@ func (wheel *TimeWheel) NewTimer() *WheelTimer {
 	}
 }
 
+// NewDirectTimer 创建直接在时间轮 goroutine 中执行回调的定时器。
+// 回调不应阻塞，适合向 buffered channel 投递信号等轻量操作。
+func (wheel *TimeWheel) NewDirectTimer() *WheelTimer {
+	return &WheelTimer{
+		wheel:  wheel,
+		direct: true,
+	}
+}
+
 // WheelTimer 面向用户的时间轮定时器，线程安全。
 type WheelTimer struct {
-	wheel *TimeWheel                     // 所属时间轮
-	task  atomic.Pointer[wheelTimerTask] // 当前任务指针，nil 表示已停止
+	wheel  *TimeWheel                     // 所属时间轮
+	task   atomic.Pointer[wheelTimerTask] // 当前任务指针，nil 表示已停止
+	direct bool                           // 是否直接在时间轮 goroutine 中执行回调
 }
 
 func (timer *WheelTimer) Start(d time.Duration, repeat int, cb Cb) {
@@ -291,6 +309,7 @@ func (timer *WheelTimer) Start(d time.Duration, repeat int, cb Cb) {
 		loop:     timer.wheel.loop,
 		duration: d,
 		repeat:   repeat,
+		direct:   timer.direct,
 	}
 	task.cb.Store(&cbWrap{fn: cb})
 	timer.task.Store(task)
@@ -306,6 +325,6 @@ func (timer *WheelTimer) tryStop() {
 	if old == nil {
 		return
 	}
-	old.cancel.Store(true)
 	old.cb.Store(nil)
+	timer.wheel.remove(old)
 }

@@ -9,6 +9,7 @@ import (
 	"xtnet/frame"
 	"xtnet/net"
 	"xtnet/net/packet"
+	xttimer "xtnet/timer"
 )
 
 type RequestType int8
@@ -25,18 +26,35 @@ type ContextSync struct {
 	t         RequestType
 	cb        RequestCallback
 	response  chan *packet.ReadPacket
+	timer     *xttimer.WheelTimer
 }
 
 type Sync struct {
-	loop         *frame.Loop
-	onRpcDirect  OnRpcDirect
-	onRpcRequest OnRpcRequest
-	contextID    atomic.Int32
-	contexts     sync.Map
+	loop          *frame.Loop
+	onRpcDirect   OnRpcDirect
+	onRpcRequest  OnRpcRequest
+	contextID     atomic.Int32
+	contexts      sync.Map
+	timeWheelOnce sync.Once
+	timeWheel     *xttimer.TimeWheel
 }
 
 func NewSync(loop *frame.Loop) IRpc {
 	return &Sync{loop: loop}
+}
+
+func (rpc *Sync) newWheelTimer() *xttimer.WheelTimer {
+	rpc.timeWheelOnce.Do(func() {
+		rpc.timeWheel = xttimer.NewTimeWheel(rpc.loop, 0)
+	})
+	return rpc.timeWheel.NewTimer()
+}
+
+func (rpc *Sync) newDirectWheelTimer() *xttimer.WheelTimer {
+	rpc.timeWheelOnce.Do(func() {
+		rpc.timeWheel = xttimer.NewTimeWheel(rpc.loop, 0)
+	})
+	return rpc.timeWheel.NewDirectTimer()
 }
 
 func (rpc *Sync) SetOnRpcDirect(onRpcDirect OnRpcDirect) {
@@ -77,9 +95,12 @@ func (rpc *Sync) handleRpcRequest(session net.ISession, contextID int32, rpk *pa
 func (rpc *Sync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
 	if c, ok := rpc.contexts.LoadAndDelete(contextID); ok {
 		context := c.(*ContextSync)
+		if context.timer != nil {
+			context.timer.Stop()
+		}
 		if context.t == rqtAsync {
 			rpc.loop.Post(func() {
-				context.cb(rpk)
+				context.cb(rpk, nil)
 			})
 		} else {
 			context.response <- rpk
@@ -87,6 +108,14 @@ func (rpc *Sync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
 	} else {
 		xtnet.GetLogger().LogWarn("rpc.handlerResponse: no context, contextID=%d", contextID)
 	}
+}
+
+func (rpc *Sync) handlerAsyncTimeout(contextID int32, context *ContextSync) bool {
+	if rpc.contexts.CompareAndDelete(contextID, context) {
+		context.cb(nil, ErrRequestTimeout)
+		return true
+	}
+	return false
 }
 
 func (rpc *Sync) GenContextID() int32 {
@@ -119,14 +148,24 @@ func (rpc *Sync) SendDirectRaw(session net.ISession, wpk *packet.WritePacket) {
 	}
 }
 
-func (rpc *Sync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback) {
+func (rpc *Sync) RequestAsync(session net.ISession, wpk *packet.WritePacket, expireMS time.Duration, cb RequestCallback) {
+	if expireMS < minRequestTimeout {
+		expireMS = minRequestTimeout
+	}
+
 	contextID := rpc.GenContextID()
 	context := &ContextSync{
 		contextID: contextID,
 		t:         rqtAsync,
 		cb:        cb,
+		timer:     rpc.newWheelTimer(),
 	}
 	rpc.contexts.Store(contextID, context)
+	context.timer.Start(expireMS, 0, func() {
+		if rpc.handlerAsyncTimeout(contextID, context) {
+			xtnet.GetLogger().LogWarn("rpc.RequestAsync: timeout, contextID=%d", contextID)
+		}
+	})
 
 	wpk.WriteReserveInt32(contextID)
 	wpk.WriteReserveInt8(rtRequest)
@@ -143,21 +182,26 @@ func (rpc *Sync) RequestSync(session net.ISession, wpk *packet.WritePacket, expi
 		contextID: contextID,
 		t:         rqtSync,
 		response:  make(chan *packet.ReadPacket, 1),
+		timer:     rpc.newDirectWheelTimer(),
 	}
 	rpc.contexts.Store(contextID, context)
+	timeout := make(chan struct{}, 1)
+	context.timer.Start(expireMS, 0, func() {
+		if rpc.contexts.CompareAndDelete(contextID, context) {
+			timeout <- struct{}{}
+		}
+	})
+	defer context.timer.Stop()
 
 	wpk.WriteReserveInt32(contextID)
 	wpk.WriteReserveInt8(rtRequest)
 	session.Send(wpk.GetRealData())
 
-	timer := time.NewTimer(expireMS)
-	defer timer.Stop()
-
 	select {
 	case rpk := <-context.response:
 		return rpk, nil
-	case <-timer.C:
-		rpc.contexts.Delete(contextID)
+	case <-timeout:
+		xtnet.GetLogger().LogWarn("rpc.RequestSync: timeout, contextID=%d", contextID)
 		return nil, errors.New("RequestSync timeout")
 	}
 }

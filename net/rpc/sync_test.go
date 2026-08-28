@@ -2,8 +2,10 @@ package rpc
 
 import (
 	"encoding/binary"
+	"errors"
 	"sync"
 	"testing"
+	"xtnet/frame"
 	"xtnet/net/packet"
 )
 
@@ -87,5 +89,62 @@ func TestSyncHandlerResponseRoutesByContextID(t *testing.T) {
 	}
 	if _, ok := rpc.contexts.Load(first.contextID); !ok {
 		t.Fatal("handlerResponse() removed unrelated context")
+	}
+}
+
+func TestSyncHandlerAsyncResponseCallback(t *testing.T) {
+	loop := frame.NewLoop(0, false)
+	rpc := &Sync{loop: loop}
+	want := packet.NewReadPacket([]byte{1}, binary.BigEndian, 0, 1)
+	var gotPacket *packet.ReadPacket
+	var gotErr error
+	context := &ContextSync{
+		contextID: 1,
+		t:         rqtAsync,
+		cb: func(rpk *packet.ReadPacket, err error) {
+			gotPacket = rpk
+			gotErr = err
+		},
+	}
+	rpc.contexts.Store(context.contextID, context)
+
+	rpc.handlerResponse(context.contextID, want)
+	loop.RunOnce()
+
+	if gotPacket != want {
+		t.Fatalf("callback packet = %p, want %p", gotPacket, want)
+	}
+	if gotErr != nil {
+		t.Fatalf("callback error = %v, want nil", gotErr)
+	}
+}
+
+func TestSyncHandlerAsyncTimeoutCallbackOnce(t *testing.T) {
+	rpc := &Sync{}
+	callbackCount := 0
+	var gotPacket *packet.ReadPacket
+	var gotErr error
+	context := &ContextSync{
+		contextID: 1,
+		t:         rqtAsync,
+		cb: func(rpk *packet.ReadPacket, err error) {
+			callbackCount++
+			gotPacket = rpk
+			gotErr = err
+		},
+	}
+	rpc.contexts.Store(context.contextID, context)
+
+	rpc.handlerAsyncTimeout(context.contextID, context)
+	rpc.handlerAsyncTimeout(context.contextID, context)
+
+	if callbackCount != 1 {
+		t.Fatalf("timeout callback count = %d, want 1", callbackCount)
+	}
+	if gotPacket != nil {
+		t.Fatalf("timeout callback packet = %p, want nil", gotPacket)
+	}
+	if !errors.Is(gotErr, ErrRequestTimeout) {
+		t.Fatalf("timeout callback error = %v, want %v", gotErr, ErrRequestTimeout)
 	}
 }

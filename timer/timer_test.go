@@ -86,6 +86,23 @@ func TestWheelTimerStop(t *testing.T) {
 	}
 }
 
+func TestWheelDirectTimerDoesNotRequireLoop(t *testing.T) {
+	loop := frame.NewLoop(0, false)
+	wheel := NewTimeWheel(loop, time.Millisecond*10)
+	timer := wheel.NewDirectTimer()
+	done := make(chan struct{}, 1)
+
+	timer.Start(time.Millisecond*20, 0, func() {
+		done <- struct{}{}
+	})
+
+	select {
+	case <-done:
+	case <-time.After(time.Millisecond * 200):
+		t.Fatal("direct wheel timer callback required the event loop")
+	}
+}
+
 func TestWheelTimerRound(t *testing.T) {
 	loop := frame.NewLoop(0, true)
 	wheel := NewTimeWheel(loop, time.Millisecond*10, 2, 2)

@@ -2,24 +2,29 @@ package rpc
 
 import (
 	"errors"
+	"sync"
 	"time"
 	xtnet "xtnet"
 	"xtnet/frame"
 	"xtnet/net"
 	"xtnet/net/packet"
+	xttimer "xtnet/timer"
 )
 
 type ContextNoSync struct {
 	contextID int32
 	cb        RequestCallback
+	timer     *xttimer.WheelTimer
 }
 
 type NoSync struct {
-	loop         *frame.Loop
-	onRpcDirect  OnRpcDirect
-	onRpcRequest OnRpcRequest
-	contextID    int32
-	contexts     map[int32]*ContextNoSync
+	loop          *frame.Loop
+	onRpcDirect   OnRpcDirect
+	onRpcRequest  OnRpcRequest
+	contextID     int32
+	contexts      map[int32]*ContextNoSync
+	timeWheelOnce sync.Once
+	timeWheel     *xttimer.TimeWheel
 }
 
 func NewNoSync(loop *frame.Loop) IRpc {
@@ -27,6 +32,13 @@ func NewNoSync(loop *frame.Loop) IRpc {
 		loop:     loop,
 		contexts: make(map[int32]*ContextNoSync),
 	}
+}
+
+func (rpc *NoSync) newWheelTimer() *xttimer.WheelTimer {
+	rpc.timeWheelOnce.Do(func() {
+		rpc.timeWheel = xttimer.NewTimeWheel(rpc.loop, 0)
+	})
+	return rpc.timeWheel.NewTimer()
 }
 
 func (rpc *NoSync) SetOnRpcDirect(onRpcDirect OnRpcDirect) {
@@ -68,7 +80,10 @@ func (rpc *NoSync) handlerResponse(contextID int32, rpk *packet.ReadPacket) {
 	rpc.loop.Post(func() {
 		if context, ok := rpc.contexts[contextID]; ok {
 			delete(rpc.contexts, contextID)
-			context.cb(rpk)
+			if context.timer != nil {
+				context.timer.Stop()
+			}
+			context.cb(rpk, nil)
 		} else {
 			xtnet.GetLogger().LogWarn("rpc.handlerResponse: no context, contextID=%d", contextID)
 		}
@@ -102,14 +117,27 @@ func (rpc *NoSync) SendDirectRaw(session net.ISession, wpk *packet.WritePacket) 
 	}
 }
 
-func (rpc *NoSync) RequestAsync(session net.ISession, wpk *packet.WritePacket, cb RequestCallback) {
+// RequestAsync rpc.contexts 没有加锁，只支持在 rpc.loop 循环中调用
+func (rpc *NoSync) RequestAsync(session net.ISession, wpk *packet.WritePacket, expireMS time.Duration, cb RequestCallback) {
 	if session != nil {
+		if expireMS < minRequestTimeout {
+			expireMS = minRequestTimeout
+		}
+
 		contextID := rpc.GenContextID()
 		context := &ContextNoSync{
 			contextID: contextID,
 			cb:        cb,
+			timer:     rpc.newWheelTimer(),
 		}
 		rpc.contexts[contextID] = context
+		context.timer.Start(expireMS, 0, func() {
+			if current, ok := rpc.contexts[contextID]; ok && current == context {
+				delete(rpc.contexts, contextID)
+				xtnet.GetLogger().LogWarn("rpc.RequestAsync: timeout, contextID=%d", contextID)
+				context.cb(nil, ErrRequestTimeout)
+			}
+		})
 
 		wpk.WriteReserveInt32(contextID)
 		wpk.WriteReserveInt8(rtRequest)
